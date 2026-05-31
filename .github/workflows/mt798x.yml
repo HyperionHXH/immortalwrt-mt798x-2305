@@ -78,6 +78,9 @@ jobs:
 
           git clone --depth=1 -b $REPO_BRANCH $REPO_URL openwrt
 
+          # Remove wifi-profile which conflicts with base-files (/sbin/wifi)
+          rm -rf openwrt/package/mtk/drivers/wifi-profile
+
           cd openwrt
           bash ../01_prepare.sh
 
