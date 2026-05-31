@@ -53,8 +53,11 @@ jobs:
         env:
           DEBIAN_FRONTEND: noninteractive
         run: |
+          # Redirect apt cache to build volume (root has almost no free space)
+          sudo mkdir -p ${GITHUB_WORKSPACE}/apt-cache/lists
+          sudo rm -rf /var/lib/apt/lists
+          sudo ln -s ${GITHUB_WORKSPACE}/apt-cache/lists /var/lib/apt/lists
           sudo apt clean
-          sudo rm -rf /var/lib/apt/lists/*
           sudo apt update -y
           sudo apt install -y --no-install-recommends ack antlr3 asciidoc autoconf automake autopoint binutils bison build-essential \
           bzip2 ccache clang clangd cmake cpio curl device-tree-compiler ecj fastjar flex gawk gettext gcc-multilib \
