@@ -76,8 +76,16 @@ jobs:
 
           git clone --depth=1 -b $REPO_BRANCH $REPO_URL openwrt
 
-          # Remove base-files' /sbin/wifi so wifi-profile (mtk driver) can provide it
-          rm -f openwrt/package/base-files/files/sbin/wifi
+          # Fix: keep standard /sbin/wifi (needed by mtwifi-cfg).
+          # Previously this was deleted because CI used luci-app-mtk+wifi-profile,
+          # but now all variants use mtwifi-cfg which requires the standard /sbin/wifi.
+          # Also fix mt7986 defconfigs that still reference luci-app-mtk/wifi-profile.
+          sed -i 's/^CONFIG_PACKAGE_luci-app-mtk=y/CONFIG_PACKAGE_luci-app-mtwifi-cfg=y\nCONFIG_PACKAGE_luci-i18n-mtwifi-cfg-zh-cn=y\nCONFIG_PACKAGE_mtwifi-cfg=y\n# CONFIG_PACKAGE_luci-app-mtk is not set/' openwrt/defconfig/mt7986-ax4200.config
+          sed -i 's/^CONFIG_PACKAGE_wifi-profile=y/# CONFIG_PACKAGE_wifi-profile is not set/' openwrt/defconfig/mt7986-ax4200.config
+          sed -i 's/^CONFIG_PACKAGE_luci-i18n-mtk-zh-cn=y/# CONFIG_PACKAGE_luci-i18n-mtk-zh-cn is not set/' openwrt/defconfig/mt7986-ax4200.config
+          sed -i 's/^CONFIG_PACKAGE_luci-app-mtk=y/CONFIG_PACKAGE_luci-app-mtwifi-cfg=y\nCONFIG_PACKAGE_luci-i18n-mtwifi-cfg-zh-cn=y\nCONFIG_PACKAGE_mtwifi-cfg=y\n# CONFIG_PACKAGE_luci-app-mtk is not set/' openwrt/defconfig/mt7986-ax6000-256m.config
+          sed -i 's/^CONFIG_PACKAGE_wifi-profile=y/# CONFIG_PACKAGE_wifi-profile is not set/' openwrt/defconfig/mt7986-ax6000-256m.config
+          sed -i 's/^CONFIG_PACKAGE_luci-i18n-mtk-zh-cn=y/# CONFIG_PACKAGE_luci-i18n-mtk-zh-cn is not set/' openwrt/defconfig/mt7986-ax6000-256m.config
 
           cd openwrt
           bash ../01_prepare.sh

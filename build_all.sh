@@ -1,6 +1,7 @@
 #!/bin/bash
 set -e -o pipefail
 export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin"
+export GOPROXY="https://goproxy.cn,direct"
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 OPENWRT_DIR="$SCRIPT_DIR/openwrt"
