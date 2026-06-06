@@ -4,3 +4,4 @@ artifacts/
 *.zip
 *.tar.gz
 logs_*/
+CLAUDE.md
