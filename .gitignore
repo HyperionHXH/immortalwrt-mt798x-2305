@@ -1,4 +1,6 @@
-logs_*/
-*.zip
+openwrt/
+artifacts/
 *.7z
-job-logs.txt
+*.zip
+*.tar.gz
+logs_*/
