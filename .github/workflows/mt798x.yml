@@ -92,6 +92,8 @@ jobs:
 
           cat defconfig/${build_variant}.config > .config
           bash ../02_add_package.sh
+          # Use xz squashfs compression instead of default gzip (20-30% smaller firmware)
+          echo "CONFIG_TARGET_SQUASHFS_XZ=y" >> .config
           make defconfig
 
       - name: Make Download
@@ -123,7 +125,7 @@ jobs:
           mkdir -p ./artifact/
           mv openwrt/bin/targets/mediatek/${{ env.platform }}/immortalwrt-*squashfs* ./artifact/
           cd artifact
-          7z a -mx=9 ../${{ env.image_name }}.7z .
+          7z a -t7z -m0=lzma2 -mx=9 -md=256m -mfb=273 -ms=on -mmt=on -myx=9 ../${{ env.image_name }}.7z .
 
       - name: Create release
         id: create_release
