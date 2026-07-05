@@ -1,0 +1,95 @@
+diff --git a/target/linux/mediatek/files-5.4/arch/arm64/boot/dts/mediatek/mt7986a-ruijie-rg-x60-pro-stock.dts b/target/linux/mediatek/files-5.4/arch/arm64/boot/dts/mediatek/mt7986a-ruijie-rg-x60-pro-stock.dts
+new file mode 100644
+index 0000000000..a3b0f2d82c
+--- /dev/null
++++ b/target/linux/mediatek/files-5.4/arch/arm64/boot/dts/mediatek/mt7986a-ruijie-rg-x60-pro-stock.dts
+@@ -0,0 +1,64 @@
++// SPDX-License-Identifier: (GPL-2.0 OR MIT)
++
++/dts-v1/;
++#include "mt7986a-ruijie-rg-x60-pro.dtsi"
++
++/ {
++	compatible = "ruijie,rg-x60-pro-stock", "mediatek,mt7986a";
++	model = "Ruijie RG-X60 Pro (stock layout)";
++
++	nmbm_spim_nand {
++		compatible = "generic,nmbm";
++		#address-cells = <1>;
++		#size-cells = <1>;
++
++		lower-mtd-device = <&spi_nand>;
++		forced-create;
++
++		partitions {
++			compatible = "fixed-partitions";
++			#address-cells = <1>;
++			#size-cells = <1>;
++
++			partition@0 {
++				label = "BL2";
++				reg = <0x000000 0x100000>;
++				read-only;
++			};
++
++			partition@100000 {
++				label = "u-boot-env";
++				reg = <0x100000 0x80000>;
++				read-only;
++			};
++
++			partition@180000 {
++				label = "Factory";
++				reg = <0x180000 0x200000>;
++				read-only;
++			};
++
++			partition@380000 {
++				label = "FIP";
++				reg = <0x380000 0x200000>;
++			};
++
++			partition@580000 {
++				label = "product_info";
++				reg = <0x580000 0x80000>;
++				read-only;
++			};
++
++			partition@600000 {
++				label = "kdump";
++				reg = <0x600000 0x80000>;
++				read-only;
++			};
++
++			partition@680000 {
++				label = "ubi";
++				reg = <0x680000 0x3f00000>;
++			};
++		};
++	};
++};
+diff --git a/target/linux/mediatek/image/mt7986.mk b/target/linux/mediatek/image/mt7986.mk
+index f62c4d1429..2aa0b235b6 100644
+--- a/target/linux/mediatek/image/mt7986.mk
++++ b/target/linux/mediatek/image/mt7986.mk
+@@ -411,6 +411,20 @@ define Device/ruijie-rg-x60-pro-uboot
+ endef
+ TARGET_DEVICES += ruijie-rg-x60-pro-uboot
+ 
++define Device/ruijie-rg-x60-pro-stock
++  DEVICE_VENDOR := Ruijie
++  DEVICE_MODEL := Ruijie RG-X60 Pro (stock layout)
++  DEVICE_DTS := mt7986a-ruijie-rg-x60-pro-stock
++  DEVICE_DTS_DIR := $(DTS_DIR)/mediatek
++  SUPPORTED_DEVICES := ruijie,rg-x60-pro-stock
++  UBINIZE_OPTS := -E 5
++  BLOCKSIZE := 128k
++  PAGESIZE := 2048
++  KERNEL_IN_UBI := 1
++  IMAGE/sysupgrade.bin := sysupgrade-tar | append-metadata
++endef
++TARGET_DEVICES += ruijie-rg-x60-pro-stock
++
+ define Device/ruijie-rg-x60-pro
+   DEVICE_VENDOR := Ruijie
+   DEVICE_MODEL := Ruijie RG-X60 Pro

@@ -5,8 +5,6 @@ env:
   REPO_BRANCH: openwrt-23.05
 
 on:
-  pull_request:
-    branches: [ "main" ]
   workflow_dispatch:
 
 jobs:
@@ -75,6 +73,8 @@ jobs:
           echo "release_tag=immortalwrt-mt798x-scutclient-${build_date}" >> $GITHUB_ENV
 
           git clone --depth=1 -b $REPO_BRANCH $REPO_URL openwrt
+          bash scripts/apply_2305_adapted_devices.sh openwrt
+          bash scripts/enable_2305_existing_devices.sh openwrt
 
           # Fix: keep standard /sbin/wifi (needed by mtwifi-cfg).
           # Previously this was deleted because CI used luci-app-mtk+wifi-profile,
