@@ -17,9 +17,9 @@ VARIANTS=(
 )
 
 echo "========================================="
-echo "  ImmortalWrt MT798x Build All"
-echo "  Start: $(date)"
-echo "  Jobs: $JOBS"
+echo "  ImmortalWrt MT798x 全量编译"
+echo "  开始时间: $(date)"
+echo "  编译线程: $JOBS"
 echo "========================================="
 
 rm -rf "$ARTIFACT_DIR"
@@ -32,8 +32,8 @@ for entry in "${VARIANTS[@]}"; do
   platform="${entry##*:}"
 
   echo ""
-  echo "========== $variant (platform: $platform) =========="
-  echo "Start: $(date)"
+  echo "========== $variant（平台: $platform）=========="
+  echo "开始时间: $(date)"
 
   cd "$OPENWRT_DIR"
   bash "$SCRIPT_DIR/scripts/apply_2305_adapted_devices.sh" "$OPENWRT_DIR"
@@ -43,27 +43,27 @@ for entry in "${VARIANTS[@]}"; do
   bash ../02_add_package.sh
   make defconfig
 
-  # Download new deps (incremental)
+  # 下载新增依赖（增量）
   make download -j"$DOWNLOAD_JOBS"
 
-  # Compile
+  # 编译
   make -j"$JOBS" || make -j1 V=s
 
-  # Collect artifacts
+  # 收集产物
   mkdir -p "$ARTIFACT_DIR/$variant"
   find "bin/targets/mediatek/$platform/" -name "*squashfs*" \
     -exec cp {} "$ARTIFACT_DIR/$variant/" \;
 
-  echo "Done $variant: $(ls "$ARTIFACT_DIR/$variant" | wc -l) files"
+  echo "完成 $variant：$(ls "$ARTIFACT_DIR/$variant" | wc -l) 个文件"
 done
 
 echo ""
 echo "========================================="
-echo "  ALL DONE at $(date)"
+echo "  全部完成：$(date)"
 echo "========================================="
 
-# Summary
+# 汇总
 for d in "$ARTIFACT_DIR"/*/; do
-  echo "$(basename $d): $(ls $d | wc -l) files"
+  echo "$(basename $d)：$(ls $d | wc -l) 个文件"
 done
 du -sh "$ARTIFACT_DIR/"

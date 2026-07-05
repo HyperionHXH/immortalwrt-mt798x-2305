@@ -9,7 +9,7 @@ MT7981_LEDS="$OPENWRT_DIR/target/linux/mediatek/mt7981/base-files/etc/board.d/01
 MT7981_UPGRADE="$OPENWRT_DIR/target/linux/mediatek/mt7981/base-files/lib/upgrade/platform.sh"
 
 if [ ! -d "$OPENWRT_DIR/target/linux/mediatek" ]; then
-  echo "error: OPENWRT_DIR does not look like an ImmortalWrt tree: $OPENWRT_DIR" >&2
+  echo "错误：OPENWRT_DIR 看起来不是 ImmortalWrt 源码树：$OPENWRT_DIR" >&2
   exit 1
 fi
 
@@ -594,4 +594,4 @@ fi
 
 perl -0pi -e 's/\n\tikuai,q3000 \|\\\n\tikuai,q3000 \|\\/\n\tikuai,q3000 |\\/g' "$MT7981_UPGRADE"
 
-echo "iKuai Q3000 23.05 adaptation ready."
+echo "iKuai Q3000 23.05 适配已准备好。"

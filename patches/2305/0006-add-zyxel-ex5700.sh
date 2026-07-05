@@ -10,7 +10,7 @@ MT7986_NETWORK="$OPENWRT_DIR/target/linux/mediatek/mt7986/base-files/etc/board.d
 MT7986_UPGRADE="$OPENWRT_DIR/target/linux/mediatek/mt7986/base-files/lib/upgrade/platform.sh"
 
 if [ ! -d "$OPENWRT_DIR/target/linux/mediatek" ]; then
-  echo "error: OPENWRT_DIR does not look like an ImmortalWrt tree: $OPENWRT_DIR" >&2
+  echo "错误：OPENWRT_DIR 看起来不是 ImmortalWrt 源码树：$OPENWRT_DIR" >&2
   exit 1
 fi
 
@@ -86,7 +86,7 @@ has_between() {
 
 mkdir -p "$MT7986_DTS_DIR"
 if [ ! -f "$FILES_DIR/mt7986a-zyxel-ex5700.dts" ]; then
-  echo "error: missing DTS payload: $FILES_DIR/mt7986a-zyxel-ex5700.dts" >&2
+  echo "错误：缺少 DTS 载荷文件：$FILES_DIR/mt7986a-zyxel-ex5700.dts" >&2
   exit 1
 fi
 install -m 0644 "$FILES_DIR/mt7986a-zyxel-ex5700.dts" "$MT7986_DTS_DIR/mt7986a-zyxel-ex5700.dts"
@@ -144,4 +144,4 @@ if ! has_between "$MT7986_UPGRADE" "platform_check_image()" "return 0" "zyxel,ex
   rm -f "$block"
 fi
 
-echo "Zyxel EX5700 23.05 adaptation ready."
+echo "Zyxel EX5700 23.05 适配已准备好。"

@@ -11,7 +11,7 @@ MT7981_LEDS="$OPENWRT_DIR/target/linux/mediatek/mt7981/base-files/etc/board.d/01
 MT7981_UPGRADE="$OPENWRT_DIR/target/linux/mediatek/mt7981/base-files/lib/upgrade/platform.sh"
 
 if [ ! -d "$OPENWRT_DIR/target/linux/mediatek" ]; then
-  echo "error: OPENWRT_DIR does not look like an ImmortalWrt tree: $OPENWRT_DIR" >&2
+  echo "错误：OPENWRT_DIR 看起来不是 ImmortalWrt 源码树：$OPENWRT_DIR" >&2
   exit 1
 fi
 
@@ -90,7 +90,7 @@ install_dts() {
   local src="$FILES_DIR/$name"
 
   if [ ! -f "$src" ]; then
-    echo "error: missing DTS payload: $src" >&2
+    echo "错误：缺少 DTS 载荷文件：$src" >&2
     exit 1
   fi
 
@@ -293,4 +293,4 @@ UPGRADE
   rm -f "$block"
 fi
 
-echo "MT7981 legacy GSW device adaptations ready."
+echo "MT7981 legacy GSW 设备适配已准备好。"

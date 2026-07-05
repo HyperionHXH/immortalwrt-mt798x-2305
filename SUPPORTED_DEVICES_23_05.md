@@ -1,39 +1,33 @@
-# MT798x 23.05 Device Support Audit
+# MT798x 23.05 设备支持审计
 
-Checked on 2026-07-05.
+检查日期：2026-07-05。
 
-## Policy
+## 适配原则
 
-Use 23.05 as the implementation baseline. The 21.02 tree is only used to learn
-which devices used to exist. Do not copy old 21.02 DTS, image rules, or platform
-scripts into this build blindly.
+实现以 23.05 源码树为基准。21.02 只用来确认“以前出现过哪些设备名称”，不能直接照搬旧的 21.02 DTS、镜像规则或平台脚本。
 
-Missing devices must be adapted to the 23.05 tree style and then validated.
+缺失设备必须按 23.05 的源码结构重新适配，然后再验证。
 
-## Sources
+## 来源
 
-- 23.05 source: `padavanonly/immortalwrt-mt798x-6.6`, branch `openwrt-23.05`
-- 21.02 name reference: `hanwckf/immortalwrt-mt798x`, branch `openwrt-21.02`
-- Local build wrapper: `/home/miunah/my_project/mt798x_build`
+- 23.05 源码：`padavanonly/immortalwrt-mt798x-6.6`，分支 `openwrt-23.05`
+- 21.02 名称参考：`hanwckf/immortalwrt-mt798x`，分支 `openwrt-21.02`
+- 本地旧编译 wrapper：`/home/miunah/my_project/mt798x_build`
 
-## Summary
+## 总结
 
-| Source | Device definitions | Defconfig-covered devices |
+| 来源 | 设备定义数 | defconfig 覆盖设备数 |
 |---|---:|---:|
-| 21.02 name reference | 91 | 47 |
-| 23.05 upstream before this wrapper | 76 | 25 |
-| 23.05 wrapper after `scripts/enable_2305_existing_devices.sh` | 76 | 38 |
-| 23.05 wrapper after `patches/2305/` adaptations | 91 | 53 |
+| 21.02 名称参考 | 91 | 47 |
+| 本 wrapper 修改前的 23.05 源码 | 76 | 25 |
+| 运行 `scripts/enable_2305_existing_devices.sh` 后的 23.05 wrapper | 76 | 38 |
+| 应用 `patches/2305/` 适配后的 23.05 wrapper | 91 | 53 |
 
-Important: `imou_lc-hx3001` already exists in 23.05 and is selected by
-`defconfig/mt7981-ax3000.config`.
+注意：`imou_lc-hx3001` 在 23.05 源码里本来就存在，并且已经由 `defconfig/mt7981-ax3000.config` 选中。
 
-## 23.05 Defconfig-Covered Devices
+## 23.05 Defconfig 已覆盖设备
 
-These devices are selected by this wrapper after running
-`scripts/apply_2305_adapted_devices.sh` and
-`scripts/enable_2305_existing_devices.sh`. The devices listed in
-"23.05 Adapted In This Wrapper" are added by local 23.05-style patches.
+运行 `scripts/apply_2305_adapted_devices.sh` 和 `scripts/enable_2305_existing_devices.sh` 后，本 wrapper 会选中下面这些设备。属于“本 wrapper 适配进 23.05”的设备见后面的“本 wrapper 新增适配”一节。
 
 ```text
 BPI-R3MINI-EMMC
@@ -91,11 +85,9 @@ xiaomi_redmi-router-ax6000-stock
 zyxel_ex5700
 ```
 
-## 23.05 Present But Not Enabled
+## 23.05 源码中存在但未启用
 
-These exist in the 23.05 source but are not selected by this wrapper because
-they are reference boards, low-level storage variants, shared templates, or
-otherwise not useful as normal end-user firmware outputs.
+下面这些 profile 在 23.05 源码里存在，但本 wrapper 没有选中。原因通常是它们属于参考板、底层存储布局变体、共享模板，或者不适合作为普通用户直接刷写的固件产物。
 
 ```text
 mediatek_mt7986-fpga
@@ -138,12 +130,9 @@ mt7986b-ax6000-spim-nor-rfb
 tplink_tl-common
 ```
 
-## 21.02 Name Reference Missing From 23.05
+## 本 wrapper 新增适配
 
-## 23.05 Adapted In This Wrapper
-
-These devices are implemented as 23.05-style patches under `patches/2305/` and
-selected by the wrapper after the patches apply.
+下面这些设备通过 `patches/2305/` 下的 23.05 风格补丁加入，并由 wrapper 在补丁应用后选中。
 
 ```text
 cmcc_xr30
@@ -163,71 +152,40 @@ ruijie-rg-x60-pro-stock
 zyxel_ex5700
 ```
 
-Notes:
+说明：
 
-- `cmcc_xr30` and `cmcc_xr30-emmc` are adapted as RAX3000M-family devices
-  using the 23.05 DSA switch layout, not the older 21.02 swconfig `gsw`
-  description.
-- `cmcc_xr30-emmc` has its own MAC offset handling and does not alter the
-  existing `cmcc_rax3000m-emmc` offsets.
-- The eMMC calibration preinit matcher is corrected from the stale
-  `cmcc,rax3000m-em` string to `cmcc,rax3000m-emmc` while adding XR30 eMMC.
-- `ikuai_q3000` is adapted from a DSA-style 21.02 board description with
-  23.05-compatible SPI bus-width properties and current base-files placement.
-- `honor_fur-602`, `newland_nl-wr8103`, `newland_nl-wr9103`, and
-  `routerich_ax3000` are adapted from 21.02 MT7981 `gsw` device descriptions.
-  This is acceptable for the current 23.05 source because its mt7981 kernel
-  config still enables the legacy `MT753X_GSW` driver.
-- `routerich_ax3000` writes the 5 GHz Wi-Fi MAC into the current 23.05
-  `mt7981.dbdc.b1.dat` path instead of relying on the older `l1dat if2dat`
-  helper path.
-- `ruijie_rg-x30e*` is adapted as six DSA layouts: normal, stock, and
-  firmware2 for both RG-X30E and RG-X30E Pro. The Wi-Fi MAC handling writes the
-  current 23.05 MT7981 dat files directly instead of depending on the older
-  `l1dat if2dat` helper path.
-- `ruijie-rg-x60-pro-stock` reuses the 23.05 `mt7986a-ruijie-rg-x60-pro.dtsi`
-  hardware description and the existing `ruijie,rg-x60-pro*` network, MAC, and
-  sysupgrade base-files handling.
-- The stock profile has its own compatible string,
-  `ruijie,rg-x60-pro-stock`, instead of inheriting the old 21.02 compatible
-  typo.
-- `zyxel_ex5700` is adapted from the 21.02 5.4-compatible EX5700 DTS, not the
-  newer mainline `ex5700-telenor` DTS, because this build still targets the
-  23.05 5.4 kernel tree.
-- This is build-structure adapted. Real-device boot, Ethernet, Wi-Fi, LuCI, and
-  sysupgrade still need validation before it should be considered fully proven.
+- `cmcc_xr30` 和 `cmcc_xr30-emmc` 按 RAX3000M 系列设备处理，使用 23.05 的 DSA 交换机布局，不沿用 21.02 的旧 `gsw` 写法。
+- `cmcc_xr30-emmc` 有自己的 MAC 偏移处理，不会改动现有 `cmcc_rax3000m-emmc` 的偏移。
+- 增加 XR30 eMMC 时，同时把 eMMC 校准 preinit 匹配从过时的 `cmcc,rax3000m-em` 修正为 `cmcc,rax3000m-emmc`。
+- `ikuai_q3000` 从 21.02 的 DSA 风格板级描述适配而来，并改成 23.05 可用的 SPI bus-width 属性和当前 base-files 放置方式。
+- `honor_fur-602`、`newland_nl-wr8103`、`newland_nl-wr9103` 和 `routerich_ax3000` 从 21.02 的 MT7981 `gsw` 设备描述适配而来。当前 23.05 源码的 mt7981 内核配置仍启用旧 `MT753X_GSW` 驱动，所以这条路线在结构上是可编译的。
+- `routerich_ax3000` 会把 5 GHz Wi-Fi MAC 写入当前 23.05 的 `mt7981.dbdc.b1.dat` 路径，不再依赖旧的 `l1dat if2dat` 辅助路径。
+- `ruijie_rg-x30e*` 适配为 6 个 DSA 布局：RG-X30E 和 RG-X30E Pro 各自的普通、stock、firmware2 版本。Wi-Fi MAC 处理直接写当前 23.05 的 MT7981 dat 文件，不再依赖旧的 `l1dat if2dat` 路径。
+- `ruijie-rg-x60-pro-stock` 复用 23.05 已有的 `mt7986a-ruijie-rg-x60-pro.dtsi` 硬件描述，以及现有 `ruijie,rg-x60-pro*` 的网络、MAC 和 sysupgrade base-files 处理。
+- stock profile 有自己的 compatible 字符串 `ruijie,rg-x60-pro-stock`，没有继承 21.02 里的旧 compatible 拼写问题。
+- `zyxel_ex5700` 是从适配 21.02/5.4 内核的 EX5700 DTS 迁移而来，没有改用更新的 mainline `ex5700-telenor` DTS，因为这个 23.05 构建仍然针对 5.4 内核树。
+- 这里完成的是“源码结构层面适配”。真实设备的启动、以太网、Wi-Fi、LuCI、sysupgrade、重置键、LED、MAC 地址等仍需要实机验证后，才能算完全确认。
 
-## 21.02 Name Reference Still Missing From 23.05
+## 21.02 有而 23.05 仍缺失的设备
 
-These are the devices that make 21.02 look broader. They are not implemented in
-the checked 23.05 tree and need real 23.05-style adaptation before they can be
-added to the build.
+下面这两个设备是 21.02 看起来更“多”的主要差异。它们没有在已检查的 23.05 源码树中实现，需要单独做真正的 23.05 风格适配后才能加入构建。
 
 ```text
 xiaomi_mi-router-ax3000t-an8855
 xiaomi_mi-router-ax3000t-an8855-stock
 ```
 
-`xiaomi_mi-router-ax3000t-an8855*` is intentionally not enabled yet. The 21.02
-tree includes an `airoha/an8855` switch driver and a shared Xiaomi DTSI node for
-this hardware, while the checked 23.05 tree has no AN8855 driver or
-`gsw_an8855` node. Adding only two DTS/profile files would likely produce
-misleading firmware with broken Ethernet, so this needs a separate AN8855
-driver-porting task.
+`xiaomi_mi-router-ax3000t-an8855*` 目前故意不启用。21.02 源码里包含 `airoha/an8855` 交换机驱动，以及这个硬件对应的 Xiaomi 共享 DTSI 节点；但已检查的 23.05 源码没有 AN8855 驱动，也没有 `gsw_an8855` 节点。只添加两个 DTS/profile 文件很可能会产出以太网不可用的误导性固件，所以这里需要单独做 AN8855 驱动移植任务。
 
-## Adaptation Rules
+## 后续适配规则
 
-For every missing device, implement against 23.05:
+每个缺失设备都要按 23.05 来实现：
 
-- DTS/DTSI in the current 23.05 kernel tree style
-- `target/linux/mediatek/image/mt7981.mk` or `mt7986.mk` image recipe
-- DSA network layout, LED defaults, MAC derivation, Wi-Fi calibration, and
-  sysupgrade handling in the current 23.05 base-files style
-- Device packages and storage layout matching the real hardware
-- Defconfig selection only after the 23.05 recipe is present
-- Build test first, then real-device boot, Ethernet, Wi-Fi, LuCI, reset, LED,
-  MAC address, and sysupgrade tests
+- DTS/DTSI 使用当前 23.05 内核树风格；
+- 镜像规则放在 `target/linux/mediatek/image/mt7981.mk` 或 `mt7986.mk`；
+- DSA 网络布局、LED 默认值、MAC 推导、Wi-Fi 校准和 sysupgrade 处理使用当前 23.05 base-files 风格；
+- 设备包和存储布局必须匹配真实硬件；
+- 只有 23.05 recipe 已存在后，才能加入 defconfig 选择；
+- 先做编译测试，再做真实设备启动、以太网、Wi-Fi、LuCI、重置键、LED、MAC 地址和 sysupgrade 测试。
 
-The dedicated maintenance repository should keep those 23.05-style adaptation
-patches. This self-use firmware repository should consume the finished support
-and build the SCUT package set.
+专门的设备维护仓库应该保存这些 23.05 风格适配补丁。这个自用固件仓库只消费已经整理好的设备支持，并叠加 SCUT 插件集合来编译固件。

@@ -1,31 +1,48 @@
-# ImmortalWrt MT798x Build (openwrt-23.05)
+# ImmortalWrt MT798x 23.05 固件编译
 
-Verified baseline for the MT798x firmware build.
+这是当前已验证可用的 MT798x 23.05 自用固件编译仓库，用来编译带 SCUT、Passwall、OpenClash、Tailscale 等插件的 ImmortalWrt 固件。
 
-- Source: `padavanonly/immortalwrt-mt798x-6.6`
-- Branch: `openwrt-23.05`
-- WSL path: `/home/miunah/my_project/mt798x_build`
+- 源码仓库：`padavanonly/immortalwrt-mt798x-6.6`
+- 源码分支：`openwrt-23.05`
+- 本地旧 WSL 路径：`/home/miunah/my_project/mt798x_build`
+- 当前策略：本地不再保留完整源码和编译目录，主要通过 GitHub Actions 手动编译
 
-## Device Variants
+## 设备变种
 
-See [SUPPORTED_DEVICES_23_05.md](SUPPORTED_DEVICES_23_05.md) for the 21.02 vs 23.05 MT798x device support audit.
+完整设备支持审计见 [SUPPORTED_DEVICES_23_05.md](SUPPORTED_DEVICES_23_05.md)。
 
-| Variant | Platform | Examples |
+| 变种 | 平台 | 示例设备 |
 |---|---|---|
-| `mt7981-ax3000` | mt7981 | RAX3000M, ASR3000, CT3003, JCG Q30, 360 T7, GL-MT3000, AX3000T, Routerich AX3000 |
-| `mt7986-ax4200` | mt7986 | BPI-R3 Mini, BPI-R3 Mini 110M |
-| `mt7986-ax6000` | mt7986 | GL-MT6000, Netcore N60, JDCloud RE-CP-03, Ruijie RG-X60 Pro, Zyxel EX5700 |
-| `mt7986-ax6000-256m` | mt7986 | 256 MB RAM variants |
+| `mt7981-ax3000` | mt7981 | RAX3000M、ASR3000、CT3003、JCG Q30、360 T7、GL-MT3000、AX3000T、Routerich AX3000 |
+| `mt7986-ax4200` | mt7986 | BPI-R3 Mini、BPI-R3 Mini 110M |
+| `mt7986-ax6000` | mt7986 | GL-MT6000、Netcore N60、JDCloud RE-CP-03、Ruijie RG-X60 Pro、Zyxel EX5700 |
+| `mt7986-ax6000-256m` | mt7986 | 256 MB 内存版本 |
 
-This wrapper currently enables 53 end-user device profiles: 38 that already
-exist in the 23.05 source tree, plus `cmcc_xr30`, `cmcc_xr30-emmc`,
-`honor_fur-602`, `ikuai_q3000`, `newland_nl-wr8103`,
-`newland_nl-wr9103`, `routerich_ax3000`, six `ruijie_rg-x30e*` layouts,
-`ruijie-rg-x60-pro-stock`, and `zyxel_ex5700` adapted in `patches/2305/`.
-The 21.02 tree is used only as a device-name and 5.4-era hardware reference;
-23.05 remains the implementation baseline.
+这个 wrapper 当前会启用 53 个面向用户的设备 profile：
 
-## Build
+- 38 个是 23.05 源码树里已经存在、只是原 defconfig 没全选的设备；
+- 另外 15 个通过 `patches/2305/` 做了 23.05 风格适配，包括 `cmcc_xr30`、`cmcc_xr30-emmc`、`honor_fur-602`、`ikuai_q3000`、`newland_nl-wr8103`、`newland_nl-wr9103`、`routerich_ax3000`、6 个 `ruijie_rg-x30e*` 布局、`ruijie-rg-x60-pro-stock` 和 `zyxel_ex5700`。
+
+21.02 只作为“曾经支持过哪些设备”的名称参考，不直接照搬旧代码。实际实现仍以 23.05 源码结构为准。
+
+## GitHub Actions 编译
+
+Actions 只允许手动触发，不会因为 push 自动开始编译。
+
+入口：
+
+[MT798x 23.05 手动编译](https://github.com/HyperionHXH/immortalwrt-mt798x-2305/actions/workflows/mt798x.yml)
+
+点 **Run workflow** 后会编译 4 个变种：
+
+- `mt7981-ax3000`
+- `mt7986-ax4200`
+- `mt7986-ax6000-256m`
+- `mt7986-ax6000`
+
+## 本地编译参考
+
+现在不建议再把完整源码长期放在 WSL 里。下面命令只作为以后需要本地复现问题时的参考。
 
 ```bash
 cd /home/miunah/my_project/mt798x_build/openwrt
@@ -40,42 +57,44 @@ make download -j8
 make -j2
 ```
 
-Full build:
+全量编译参考：
 
 ```bash
 cd /home/miunah/my_project/mt798x_build
 JOBS=2 bash build_all.sh
 ```
 
-`build_all.sh` runs `01_prepare.sh` first, so feeds are refreshed and linked
-before `.config` is generated. `01_prepare.sh` also applies the local 23.05
-device adaptations and enables the selected end-user profiles. The adaptation
-scripts are idempotent, so rerunning them is safe, but manual builds normally
-only need the `01_prepare.sh` call above. The feed refresh is required for LuCI
-and `lua-cjson`, which are dependencies of `default-settings`,
-`default-settings-chn`, and `mtwifi-cfg`.
+`build_all.sh` 会先执行 `01_prepare.sh`，所以 feeds 会先刷新并链接好，然后才生成 `.config`。`01_prepare.sh` 也会自动应用本仓库的 23.05 设备适配并启用选定设备 profile。适配脚本是幂等的，重复运行不会重复插入同一段配置。
 
-GitHub Actions are configured for manual `workflow_dispatch` only. Pushes and
-pull requests should not start builds automatically.
+feeds 刷新是必须的，因为 `luci`、`lua-cjson` 等依赖会影响 `default-settings`、`default-settings-chn` 和 `mtwifi-cfg` 是否能正确选中。
 
-## Wi-Fi State
+## Wi-Fi 状态
 
-Current checked source state, 2026-07-04:
+当前 23.05 可用路线是：
 
-- Keep `openwrt/package/base-files/files/sbin/wifi`.
-- Defconfigs use `kmod-mt_wifi`, `mtwifi-cfg`, `luci-app-mtwifi-cfg`, and `wifi-dats`.
-- Defconfigs do not use `wifi-profile` or `luci-app-mtk`.
-- `mtwifi-cfg` provides `/etc/hotplug.d/net/10-mtwifi-detect`, `/lib/wifi/mtwifi.sh`, and `/lib/netifd/wireless/mtwifi.sh`.
+- 必须保留 `openwrt/package/base-files/files/sbin/wifi`；
+- defconfig 使用 `kmod-mt_wifi`、`mtwifi-cfg`、`luci-app-mtwifi-cfg` 和 `wifi-dats`；
+- 不启用 `wifi-profile`；
+- 不启用旧的 `luci-app-mtk`；
+- `mtwifi-cfg` 提供 `/etc/hotplug.d/net/10-mtwifi-detect`、`/lib/wifi/mtwifi.sh` 和 `/lib/netifd/wireless/mtwifi.sh`。
 
-Do not delete `/sbin/wifi`. Older CI notes that removed it belong to a different `luci-app-mtk + wifi-profile` approach and are wrong for this verified 23.05 route.
+不要删除 `/sbin/wifi`。以前 CI 里删除 `/sbin/wifi` 的做法属于另一条 `luci-app-mtk + wifi-profile` 实验路线，不适用于当前这个已验证的 23.05 路线。
 
-## Known Working Packages
+## 已知可用插件
 
-The user has reported the 23.05 firmware as usable with the expected package set, including scutclient, Passwall, OpenClash, Tailscale, Argon theme, USB storage, and block-mount.
+用户之前反馈 23.05 固件可用，插件集合包括：
 
-## WSL Note
+- scutclient
+- Passwall / Xray / Hysteria / Sing-Box
+- OpenClash
+- Tailscale
+- Argon 主题
+- USB 存储相关模块
+- block-mount
 
-Use the WSL filesystem for builds. Avoid building under `/mnt/c`.
+## WSL 注意事项
+
+如果以后必须本地编译，源码和构建目录要放在 WSL 文件系统里，不要放在 `/mnt/c`。
 
 ```bash
 sudo tee -a /etc/wsl.conf <<'EOF'

@@ -9,7 +9,7 @@ MT7981_UPGRADE="$OPENWRT_DIR/target/linux/mediatek/mt7981/base-files/lib/upgrade
 MT7981_PREINIT="$OPENWRT_DIR/target/linux/mediatek/mt7981/base-files/lib/preinit/90_extract_caldata"
 
 if [ ! -d "$OPENWRT_DIR/target/linux/mediatek" ]; then
-  echo "error: OPENWRT_DIR does not look like an ImmortalWrt tree: $OPENWRT_DIR" >&2
+  echo "错误：OPENWRT_DIR 看起来不是 ImmortalWrt 源码树：$OPENWRT_DIR" >&2
   exit 1
 fi
 
@@ -464,4 +464,4 @@ fi
 perl -0pi -e 's/\\t/\t/g' "$MT7981_NETWORK" "$MT7981_UPGRADE"
 perl -0pi -e 's/\n\tcmcc,xr30\* \|\\\n\tcmcc,xr30 \|\\/\n\tcmcc,xr30 |\\/g' "$MT7981_UPGRADE"
 
-echo "CMCC XR30 23.05 adaptation ready."
+echo "CMCC XR30 23.05 适配已准备好。"

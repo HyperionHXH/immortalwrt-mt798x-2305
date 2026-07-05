@@ -4,7 +4,7 @@ set -euo pipefail
 OPENWRT_DIR="${1:-${OPENWRT_DIR:-$PWD}}"
 
 if [ ! -d "$OPENWRT_DIR/target/linux/mediatek" ]; then
-  echo "error: OPENWRT_DIR does not look like an ImmortalWrt tree: $OPENWRT_DIR" >&2
+  echo "错误：OPENWRT_DIR 看起来不是 ImmortalWrt 源码树：$OPENWRT_DIR" >&2
   exit 1
 fi
 
@@ -17,7 +17,7 @@ add_config() {
   local tmp
 
   if ! grep -Rqs "^define Device/${device}$" "$OPENWRT_DIR/target/linux/mediatek/image"; then
-    echo "Skipping missing device profile: $device"
+    echo "跳过缺失的设备 profile：$device"
     return 0
   fi
 
@@ -64,7 +64,7 @@ add_config() {
   fi
 }
 
-echo "Enabling 23.05 existing MT798x device definitions in $OPENWRT_DIR"
+echo "正在启用 $OPENWRT_DIR 中已有的 23.05 MT798x 设备定义"
 
 for dev in \
   mt7981-360-t7 \
@@ -103,4 +103,4 @@ for dev in \
   add_config "defconfig/mt7986-ax6000.config" "mediatek_mt7986" "$dev"
 done
 
-echo "23.05 existing device definitions enabled."
+echo "23.05 已有设备定义已启用。"

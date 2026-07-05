@@ -1,4 +1,4 @@
-name: mt798x_CI
+name: MT798x 23.05 手动编译
 
 env:
   REPO_URL: https://github.com/padavanonly/immortalwrt-mt798x-6.6
@@ -33,22 +33,22 @@ jobs:
             platform: mt7986
 
     steps:
-      - name: Maximize build space
+      - name: 释放 GitHub Runner 编译空间
         uses: easimon/maximize-build-space@v8
         with:
           swap-size-mb: 512
           temp-reserve-mb: 1
-          # Reserve enough root space for apt (~250MB lists + packages + dpkg tmp)
+          # 给 apt 预留足够根分区空间（列表、软件包和 dpkg 临时文件约需 250MB 以上）
           root-reserve-mb: 4096
           remove-dotnet: 'true'
           remove-android: 'true'
           remove-haskell: 'true'
           remove-codeql: 'true'
 
-      - name: Checkout
+      - name: 拉取本仓库
         uses: actions/checkout@v4
 
-      - name: Init build dependencies
+      - name: 安装编译依赖
         env:
           DEBIAN_FRONTEND: noninteractive
         run: |
@@ -65,7 +65,7 @@ jobs:
           sudo apt clean
           sudo rm -rf /var/lib/apt/lists/*
 
-      - name: Prepare
+      - name: 准备源码和配置
         run: |
           build_date="$(date +%Y%m%d)"
           image_prefix=immortalwrt-${build_variant}-scutclient
@@ -76,10 +76,10 @@ jobs:
           bash scripts/apply_2305_adapted_devices.sh openwrt
           bash scripts/enable_2305_existing_devices.sh openwrt
 
-          # Fix: keep standard /sbin/wifi (needed by mtwifi-cfg).
-          # Previously this was deleted because CI used luci-app-mtk+wifi-profile,
-          # but now all variants use mtwifi-cfg which requires the standard /sbin/wifi.
-          # Also fix mt7986 defconfigs that still reference luci-app-mtk/wifi-profile.
+          # 修复：保留标准 /sbin/wifi（mtwifi-cfg 需要它）。
+          # 以前删除它是因为 CI 走 luci-app-mtk + wifi-profile 路线；
+          # 现在所有变种都使用 mtwifi-cfg，必须保留标准 /sbin/wifi。
+          # 顺手修正仍引用 luci-app-mtk/wifi-profile 的 mt7986 defconfig。
           sed -i 's/^CONFIG_PACKAGE_luci-app-mtk=y/CONFIG_PACKAGE_luci-app-mtwifi-cfg=y\nCONFIG_PACKAGE_luci-i18n-mtwifi-cfg-zh-cn=y\nCONFIG_PACKAGE_mtwifi-cfg=y\n# CONFIG_PACKAGE_luci-app-mtk is not set/' openwrt/defconfig/mt7986-ax4200.config
           sed -i 's/^CONFIG_PACKAGE_wifi-profile=y/# CONFIG_PACKAGE_wifi-profile is not set/' openwrt/defconfig/mt7986-ax4200.config
           sed -i 's/^CONFIG_PACKAGE_luci-i18n-mtk-zh-cn=y/# CONFIG_PACKAGE_luci-i18n-mtk-zh-cn is not set/' openwrt/defconfig/mt7986-ax4200.config
@@ -92,34 +92,34 @@ jobs:
 
           cat defconfig/${build_variant}.config > .config
           bash ../02_add_package.sh
-          # Use xz squashfs compression instead of default gzip (20-30% smaller firmware)
+          # 使用 xz 压缩 squashfs，固件通常比默认 gzip 小 20-30%
           echo "CONFIG_TARGET_SQUASHFS_XZ=y" >> .config
           make defconfig
 
-      - name: Make Download
+      - name: 下载源码包
         run: |
           cd openwrt
           timeout 30m make download -j8 || {
-            echo "Download failed with -j8, retrying with -j1 V=s..."
+            echo "下载失败（-j8），改用 -j1 V=s 重试..."
             timeout 20m make download -j1 V=s || {
-              echo "Download failed after retry" >&2
+              echo "重试后下载仍失败" >&2
               exit 1
             }
           }
 
-      - name: Compile
+      - name: 编译固件
         id: compileopenwrt
         run: |
           cd openwrt
           timeout 4h make -j$(nproc) || {
-            echo "Parallel compile failed or timed out, retrying serial build..."
+            echo "并行编译失败或超时，改用单线程详细日志重试..."
             timeout 2h make -j1 V=s || {
-              echo "Compile failed after retry" >&2
+              echo "重试后编译仍失败" >&2
               exit 1
             }
           }
 
-      - name: Package
+      - name: 打包固件
         run: |
           rm -rf ./artifact/
           mkdir -p ./artifact/
@@ -127,7 +127,7 @@ jobs:
           cd artifact
           7z a -t7z -m0=lzma2 -mx=9 -md=256m -mfb=273 -ms=on -mmt=on -myx=9 ../${{ env.image_name }}.7z .
 
-      - name: Create release
+      - name: 创建 Release
         id: create_release
         uses: ncipollo/release-action@v1.13.0
         with:

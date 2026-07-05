@@ -8,7 +8,7 @@ MT7981_NETWORK="$OPENWRT_DIR/target/linux/mediatek/mt7981/base-files/etc/board.d
 MT7981_UPGRADE="$OPENWRT_DIR/target/linux/mediatek/mt7981/base-files/lib/upgrade/platform.sh"
 
 if [ ! -d "$OPENWRT_DIR/target/linux/mediatek" ]; then
-  echo "error: OPENWRT_DIR does not look like an ImmortalWrt tree: $OPENWRT_DIR" >&2
+  echo "错误：OPENWRT_DIR 看起来不是 ImmortalWrt 源码树：$OPENWRT_DIR" >&2
   exit 1
 fi
 
@@ -916,4 +916,4 @@ if ! has_between "$MT7981_UPGRADE" "platform_check_image()" "platform_pre_upgrad
   rm -f "$block"
 fi
 
-echo "Ruijie RG-X30E 23.05 adaptation ready."
+echo "Ruijie RG-X30E 23.05 适配已准备好。"
