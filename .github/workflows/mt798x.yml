@@ -34,16 +34,17 @@ jobs:
 
     steps:
       - name: 释放 GitHub Runner 编译空间
-        uses: easimon/maximize-build-space@v8
+        uses: easimon/maximize-build-space@v10
         with:
           swap-size-mb: 512
           temp-reserve-mb: 1
-          # 给 apt 预留足够根分区空间（列表、软件包和 dpkg 临时文件约需 250MB 以上）
-          root-reserve-mb: 4096
+          # 给 apt 和日志预留更多根分区空间，避免编译末段写日志时报 No space left on device。
+          root-reserve-mb: 8192
           remove-dotnet: 'true'
           remove-android: 'true'
           remove-haskell: 'true'
           remove-codeql: 'true'
+          remove-docker-images: 'true'
 
       - name: 拉取本仓库
         uses: actions/checkout@v4
