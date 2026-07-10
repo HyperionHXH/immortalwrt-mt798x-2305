@@ -71,6 +71,38 @@ insert_before_marker_after() {
   mv "$tmp" "$file"
 }
 
+replace_case_block() {
+  local file="$1"
+  local case_line="$2"
+  local block_file="$3"
+  local tmp
+
+  tmp="$(mktemp)"
+  awk -v case_line="$case_line" -v block_file="$block_file" '
+    BEGIN {
+      while ((getline line < block_file) > 0) {
+        block = block line ORS
+      }
+      close(block_file)
+    }
+    index($0, case_line) && !done {
+      printf "%s", block
+      skip = 1
+      done = 1
+      next
+    }
+    skip && /^[[:space:]]*;;[[:space:]]*$/ {
+      skip = 0
+      next
+    }
+    !skip { print }
+    END {
+      if (!done) exit 1
+    }
+  ' "$file" > "$tmp"
+  mv "$tmp" "$file"
+}
+
 has_between() {
   local file="$1"
   local start="$2"
@@ -194,13 +226,20 @@ DEVICE
   rm -f "$block"
 fi
 
-if ! grep -q 'honor,fur-602' "$MT7981_NETWORK"; then
+honor_network_block="$(mktemp)"
+cat > "$honor_network_block" <<'NETWORK'
+	*honor,fur-602*)
+		ucidef_set_interfaces_lan_wan "lan1 lan2 lan3" wan
+		;;
+NETWORK
+
+if grep -q 'honor,fur-602' "$MT7981_NETWORK"; then
+  replace_case_block "$MT7981_NETWORK" "*honor,fur-602*)" "$honor_network_block"
+else
   block="$(mktemp)"
   cat > "$block" <<'NETWORK'
 	*honor,fur-602*)
-		ucidef_set_interfaces_lan_wan "eth0.1" "eth0.2"
-		ucidef_add_switch "switch0" \
-			"1:lan:3" "2:lan:2" "3:lan:1" "0:wan" "6t@eth0"
+		ucidef_set_interfaces_lan_wan "lan1 lan2 lan3" wan
 		;;
 	*newland,nl-wr8103*)
 		ucidef_set_interfaces_lan_wan "eth0" "eth1"
@@ -221,6 +260,7 @@ NETWORK
   insert_before_marker "$MT7981_NETWORK" '	*cmcc,a10*)' "$block"
   rm -f "$block"
 fi
+rm -f "$honor_network_block"
 
 if ! grep -q 'macaddr_add "$wifi_mac" -2' "$MT7981_NETWORK"; then
   block="$(mktemp)"
