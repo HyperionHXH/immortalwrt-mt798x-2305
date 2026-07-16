@@ -31,6 +31,12 @@ git clone --depth=1 https://github.com/asvow/luci-app-tailscale.git package/luci
 
 ./scripts/feeds install -a
 
+# 该 23.05 分支把普通 LAN 默认地址改成了 192.168.6.1。本仓库统一使用
+# 192.168.1.1，避免刷机后按常用地址排查时误判设备未启动。
+sed -i 's/192\.168\.6\.1/192.168.1.1/' \
+  package/base-files/files/bin/config_generate
+grep -Fq 'lan) ipad=${ipaddr:-"192.168.1.1"}' package/base-files/files/bin/config_generate
+
 # 在 rc.local 中加入默认禁用的联通加速提示。
 if ! grep -q 'scut_unicom/add_route.sh server_ip username password' package/base-files/files/etc/rc.local; then
   sed -i '/^exit 0/i # 如果要使用联通加速，删除下一行开头的 # 并填好参数。\n#sleep 10 && /usr/share/scut_unicom/add_route.sh server_ip username password' package/base-files/files/etc/rc.local

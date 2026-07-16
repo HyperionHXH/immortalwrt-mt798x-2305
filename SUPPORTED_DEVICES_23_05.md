@@ -1,6 +1,6 @@
 # MT798x 23.05 设备支持审计
 
-检查日期：2026-07-05。
+检查日期：2026-07-16。
 
 ## 适配原则
 
@@ -157,14 +157,15 @@ zyxel_ex5700
 - `cmcc_xr30` 和 `cmcc_xr30-emmc` 按 RAX3000M 系列设备处理，使用 23.05 的 DSA 交换机布局，不沿用 21.02 的旧 `gsw` 写法。
 - `cmcc_xr30-emmc` 有自己的 MAC 偏移处理，不会改动现有 `cmcc_rax3000m-emmc` 的偏移。
 - 增加 XR30 eMMC 时，同时把 eMMC 校准 preinit 匹配从过时的 `cmcc,rax3000m-em` 修正为 `cmcc,rax3000m-emmc`。
-- `ikuai_q3000` 从 21.02 的 DSA 风格板级描述适配而来，并改成 23.05 可用的 SPI bus-width 属性和当前 base-files 放置方式。
-- `honor_fur-602` 已从 21.02 的旧 `gsw` 写法改成 23.05 风格的 DSA/`mt7531` 交换机描述，LAN/WAN 由 `lan1 lan2 lan3` 和 `wan` 生成。旧版实机表现为常绿但无法访问 `192.168.1.1`，高度怀疑是旧 `eth0.1`/`eth0.2` 网络布局不适合 23.05。
+- `ikuai_q3000` 从 21.02 的 DSA 风格板级描述适配而来，并改成 23.05 可用的 SPI bus-width 属性和当前 base-files 放置方式。原始 recipe 的 `IMAGE_SIZE=114816k` 与 DTS 的 64 MiB UBI 分区不一致，现已按真实分区修正为 `65536k`。
+- `honor_fur-602` 已从 21.02 的旧 `gsw` 写法改成 23.05 风格的 DSA/`mt7531` 交换机描述，LAN/WAN 由 `lan1 lan2 lan3` 和 `wan` 生成，并补齐 DSA HNAT。旧固件常绿但访问 `192.168.1.1` 失败的测试不能证明适配失效，因为上游 23.05 当时的普通 LAN 默认地址实际是 `192.168.6.1`；后续构建已明确固定为 `192.168.1.1`。
 - `newland_nl-wr8103`、`newland_nl-wr9103` 和 `routerich_ax3000` 仍从 21.02 的 MT7981 `gsw` 设备描述适配而来。当前 23.05 源码的 mt7981 内核配置仍启用旧 `MT753X_GSW` 驱动，所以这条路线在结构上是可编译的，但仍需实机验证。
 - `routerich_ax3000` 会把 5 GHz Wi-Fi MAC 写入当前 23.05 的 `mt7981.dbdc.b1.dat` 路径，不再依赖旧的 `l1dat if2dat` 辅助路径。
-- `ruijie_rg-x30e*` 适配为 6 个 DSA 布局：RG-X30E 和 RG-X30E Pro 各自的普通、stock、firmware2 版本。Wi-Fi MAC 处理直接写当前 23.05 的 MT7981 dat 文件，不再依赖旧的 `l1dat if2dat` 路径。
+- `ruijie_rg-x30e*` 适配为 6 个 DSA 布局：RG-X30E 和 RG-X30E Pro 各自的普通、stock、firmware2 版本。Wi-Fi MAC 处理直接写当前 23.05 的 MT7981 dat 文件，不再依赖旧的 `l1dat if2dat` 路径。镜像上限已按每个 DTS 的真实 UBI 分区分别修正：普通布局 `114176k`，stock/firmware2 布局 `35328k`。小分区布局装不下当前插件集时应让编译失败，不能放宽上限生成可能越界的固件。
 - `ruijie-rg-x60-pro-stock` 复用 23.05 已有的 `mt7986a-ruijie-rg-x60-pro.dtsi` 硬件描述，以及现有 `ruijie,rg-x60-pro*` 的网络、MAC 和 sysupgrade base-files 处理。
 - stock profile 有自己的 compatible 字符串 `ruijie,rg-x60-pro-stock`，没有继承 21.02 里的旧 compatible 拼写问题。
 - `zyxel_ex5700` 是从适配 21.02/5.4 内核的 EX5700 DTS 迁移而来，没有改用更新的 mainline `ex5700-telenor` DTS，因为这个 23.05 构建仍然针对 5.4 内核树。
+- Action 在正式编译前会运行 `scripts/validate_2305_adaptations.sh`，检查 15 个新增 profile 的 DTS、compatible、defconfig、FUR602 DSA/HNAT、sysupgrade 入口、默认 LAN 地址和已知分区上限。
 - 这里完成的是“源码结构层面适配”。真实设备的启动、以太网、Wi-Fi、LuCI、sysupgrade、重置键、LED、MAC 地址等仍需要实机验证后，才能算完全确认。
 
 ## 21.02 有而 23.05 仍缺失的设备

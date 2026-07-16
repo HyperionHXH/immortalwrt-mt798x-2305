@@ -530,7 +530,7 @@ define Device/ikuai_q3000
   UBINIZE_OPTS := -E 5
   BLOCKSIZE := 128k
   PAGESIZE := 2048
-  IMAGE_SIZE := 114816k
+  IMAGE_SIZE := 65536k
   KERNEL_IN_UBI := 1
   IMAGES += factory.bin
   IMAGE/factory.bin := append-ubi | check-size $$$$(IMAGE_SIZE)
@@ -543,27 +543,31 @@ DEVICE
   rm -f "$block"
 fi
 
-remove_ikuai_network_blocks
 normalize_fpga_interface_block
 
-block="$(mktemp)"
-cat > "$block" <<'NETWORK'
+if ! has_between "$MT7981_NETWORK" "mediatek_setup_interfaces()" "mtk_facrory_write_mac()" "ikuai,q3000)" || \
+   ! has_between "$MT7981_NETWORK" "mediatek_setup_macs()" "board_config_update" "ikuai,q3000)"; then
+  remove_ikuai_network_blocks
+
+  block="$(mktemp)"
+  cat > "$block" <<'NETWORK'
 	ikuai,q3000)
 		ucidef_set_interfaces_lan_wan "lan1 lan2 lan3" wan
 		;;
 NETWORK
-insert_before_marker_after "$MT7981_NETWORK" "nradio,wt9103)" "	*)" "$block"
-rm -f "$block"
+  insert_before_marker_after "$MT7981_NETWORK" "nradio,wt9103)" "	*)" "$block"
+  rm -f "$block"
 
-block="$(mktemp)"
-cat > "$block" <<'NETWORK'
+  block="$(mktemp)"
+  cat > "$block" <<'NETWORK'
 	ikuai,q3000)
 		wan_mac=$(mtd_get_mac_binary $part_name 0x10048)
 		lan_mac=$(macaddr_add $wan_mac 1)
 		;;
 NETWORK
-insert_before_marker_after "$MT7981_NETWORK" "*jcg,q30*)" "h3c,nx30pro)" "$block"
-rm -f "$block"
+  insert_before_marker_after "$MT7981_NETWORK" "*jcg,q30*)" "h3c,nx30pro)" "$block"
+  rm -f "$block"
+fi
 
 if ! grep -q 'ikuai,q3000)' "$MT7981_LEDS"; then
   block="$(mktemp)"

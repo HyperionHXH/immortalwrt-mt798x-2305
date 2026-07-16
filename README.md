@@ -4,6 +4,7 @@
 
 - 源码仓库：`padavanonly/immortalwrt-mt798x-6.6`
 - 源码分支：`openwrt-23.05`
+- 已审查源码提交：`8fd3008be125e590664b311e3aaedee344adc354`
 - 本地旧 WSL 路径：`/home/miunah/my_project/mt798x_build`
 - 当前策略：本地不再保留完整源码和编译目录，主要通过 GitHub Actions 手动编译
 
@@ -67,6 +68,10 @@ JOBS=2 bash build_all.sh
 `build_all.sh` 会先执行 `01_prepare.sh`，所以 feeds 会先刷新并链接好，然后才生成 `.config`。`01_prepare.sh` 也会自动应用本仓库的 23.05 设备适配并启用选定设备 profile。适配脚本是幂等的，重复运行不会重复插入同一段配置。
 
 feeds 刷新是必须的，因为 `luci`、`lua-cjson` 等依赖会影响 `default-settings`、`default-settings-chn` 和 `mtwifi-cfg` 是否能正确选中。
+
+本仓库会把上游 23.05 的普通 LAN 默认地址从 `192.168.6.1` 明确改为 `192.168.1.1`。Action 会在编译前运行设备适配校验，分区上限、FUR602 DSA/HNAT 或默认地址不符合预期时直接停止。
+
+Action 会核对 23.05 源码提交。上游分支移动后必须先重新审查并更新固定提交，旧补丁不会直接套到未审查的新源码上。
 
 ## Wi-Fi 状态
 
