@@ -10,6 +10,7 @@ MT7986_IMAGE="$OPENWRT_DIR/target/linux/mediatek/image/mt7986.mk"
 MT7981_NETWORK="$OPENWRT_DIR/target/linux/mediatek/mt7981/base-files/etc/board.d/02_network"
 MT7981_UPGRADE="$OPENWRT_DIR/target/linux/mediatek/mt7981/base-files/lib/upgrade/platform.sh"
 SCUTCLIENT_CONTROLLER="$OPENWRT_DIR/feeds/luci/applications/luci-app-scutclient/luasrc/controller/scutclient.lua"
+SCUTCLIENT_PATCH="$WRAPPER_DIR/patches/2305/packages/luci-app-scutclient-ucodebridge.patch"
 
 fail() {
   echo "适配校验失败：$*" >&2
@@ -93,6 +94,7 @@ require_file "$MT7986_IMAGE"
 require_file "$MT7981_NETWORK"
 require_file "$MT7981_UPGRADE"
 require_file "$SCUTCLIENT_CONTROLLER"
+require_file "$SCUTCLIENT_PATCH"
 
 grep -Fq 'local http = require "luci.http"' "$SCUTCLIENT_CONTROLLER" || \
   fail "scutclient 控制器未兼容 LuCI ucodebridge：http 不是局部变量"

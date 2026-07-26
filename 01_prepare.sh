@@ -22,7 +22,7 @@ git clone https://github.com/hanwckf/luci-app-scutclient.git feeds/luci/applicat
 git -C feeds/luci/applications/luci-app-scutclient checkout --detach "$SCUTCLIENT_COMMIT"
 [ "$(git -C feeds/luci/applications/luci-app-scutclient rev-parse HEAD)" = "$SCUTCLIENT_COMMIT" ]
 git -C feeds/luci/applications/luci-app-scutclient apply \
-  "$WRAPPER_DIR/patches/2305/luci-app-scutclient-ucodebridge.patch"
+  "$WRAPPER_DIR/patches/2305/packages/luci-app-scutclient-ucodebridge.patch"
 grep -Fq 'local fs = require "nixio.fs"' \
   feeds/luci/applications/luci-app-scutclient/luasrc/controller/scutclient.lua
 

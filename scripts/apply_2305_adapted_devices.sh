@@ -39,11 +39,11 @@ apply_one_patch() {
 echo "正在向 $OPENWRT_DIR 应用 23.05 MT798x 设备适配补丁"
 
 shopt -s nullglob
-for patch_file in "$PATCH_DIR"/*.patch; do
+for patch_file in "$PATCH_DIR"/[0-9][0-9][0-9][0-9]-*.patch; do
   apply_one_patch "$patch_file"
 done
 
-for script_file in "$PATCH_DIR"/*.sh; do
+for script_file in "$PATCH_DIR"/[0-9][0-9][0-9][0-9]-*.sh; do
   echo "运行设备适配脚本：$(basename "$script_file")"
   bash "$script_file" "$OPENWRT_DIR"
 done
