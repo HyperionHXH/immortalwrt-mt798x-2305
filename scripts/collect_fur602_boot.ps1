@@ -72,6 +72,7 @@ $textPath = Join-Path $OutputDirectory "fur602-boot.txt"
 $probeAddresses = @("192.168.1.1", "192.168.6.1")
 $temporaryAddresses = [System.Collections.Generic.List[string]]::new()
 $ipv4Interface = Get-NetIPInterface -InterfaceAlias $InterfaceAlias -AddressFamily IPv4
+$originalDhcp = $ipv4Interface.Dhcp
 $originalAutomaticMetric = $ipv4Interface.AutomaticMetric
 $originalInterfaceMetric = $ipv4Interface.InterfaceMetric
 $metricChanged = $false
@@ -80,6 +81,7 @@ $metricChanged = $false
 "InterfaceAlias: $InterfaceAlias" | Add-Content -LiteralPath $summaryPath -Encoding UTF8
 "InterfaceIndex: $($adapter.ifIndex)" | Add-Content -LiteralPath $summaryPath -Encoding UTF8
 "AdapterMAC: $($adapter.MacAddress)" | Add-Content -LiteralPath $summaryPath -Encoding UTF8
+"OriginalDhcp: $originalDhcp" | Add-Content -LiteralPath $summaryPath -Encoding UTF8
 Write-Snapshot -Path $summaryPath -Stage "BEFORE"
 
 Write-Host "Capture directory: $OutputDirectory"
@@ -93,17 +95,14 @@ try {
     "Ethernet interface metric temporarily changed from $originalInterfaceMetric to 500; Wi-Fi remains preferred." |
         Add-Content -LiteralPath $summaryPath -Encoding UTF8
 
-    foreach ($probe in @(
-        @{ Address = "192.168.1.2"; Subnet = "192.168.1." },
-        @{ Address = "192.168.6.2"; Subnet = "192.168.6." }
-    )) {
-        $hasSubnetAddress = Get-NetIPAddress -InterfaceAlias $InterfaceAlias -AddressFamily IPv4 -ErrorAction SilentlyContinue |
-            Where-Object { $_.IPAddress.StartsWith($probe.Subnet) }
-        if (-not $hasSubnetAddress) {
-            New-NetIPAddress -InterfaceAlias $InterfaceAlias -IPAddress $probe.Address -PrefixLength 24 `
+    foreach ($probeAddress in "192.168.1.2", "192.168.6.2") {
+        $hasProbeAddress = Get-NetIPAddress -InterfaceAlias $InterfaceAlias -AddressFamily IPv4 -ErrorAction SilentlyContinue |
+            Where-Object { $_.IPAddress -eq $probeAddress }
+        if (-not $hasProbeAddress) {
+            New-NetIPAddress -InterfaceAlias $InterfaceAlias -IPAddress $probeAddress -PrefixLength 24 `
                 -SkipAsSource $true -PolicyStore ActiveStore | Out-Null
-            $temporaryAddresses.Add($probe.Address)
-            "Temporary probe address added: $($probe.Address)/24" |
+            $temporaryAddresses.Add($probeAddress)
+            "Temporary probe address added: $probeAddress/24" |
                 Add-Content -LiteralPath $summaryPath -Encoding UTF8
         }
     }
@@ -165,6 +164,9 @@ finally {
             -Confirm:$false -ErrorAction SilentlyContinue
     }
 
+    Set-NetIPInterface -InterfaceAlias $InterfaceAlias -AddressFamily IPv4 `
+        -Dhcp $originalDhcp -PolicyStore ActiveStore
+
     if ($metricChanged) {
         if ($originalAutomaticMetric -eq "Enabled") {
             Set-NetIPInterface -InterfaceAlias $InterfaceAlias -AddressFamily IPv4 `
@@ -175,6 +177,8 @@ finally {
                 -AutomaticMetric Disabled -InterfaceMetric $originalInterfaceMetric -PolicyStore ActiveStore
         }
     }
+
+    Write-Snapshot -Path $summaryPath -Stage "RESTORED"
 }
 
 Write-Host "Capture complete: $OutputDirectory"
