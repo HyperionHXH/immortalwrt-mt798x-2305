@@ -26,6 +26,7 @@ rm -rf "$ARTIFACT_DIR"
 
 cd "$OPENWRT_DIR"
 bash "$SCRIPT_DIR/01_prepare.sh"
+bash "$SCRIPT_DIR/scripts/validate_2305_adaptations.sh" "$OPENWRT_DIR"
 
 for entry in "${VARIANTS[@]}"; do
   variant="${entry%%:*}"

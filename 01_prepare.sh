@@ -2,6 +2,7 @@
 set -euo pipefail
 
 WRAPPER_DIR="$(cd "$(dirname "$0")" && pwd)"
+SCUTCLIENT_COMMIT="d9d618be97870813252b5ce7540f6a4ea4c22ab0"
 
 # 使用 ImmortalWrt 默认 feeds。23.05 MT798x 源码树里已经带有匹配的
 # passwall/xray/sing-box/tailscale 包集合。
@@ -18,6 +19,12 @@ git clone --depth=1 https://github.com/jerrykuku/luci-theme-argon.git package/lu
 # SCUT 校园网客户端。
 rm -rf feeds/luci/applications/luci-app-scutclient
 git clone https://github.com/hanwckf/luci-app-scutclient.git feeds/luci/applications/luci-app-scutclient
+git -C feeds/luci/applications/luci-app-scutclient checkout --detach "$SCUTCLIENT_COMMIT"
+[ "$(git -C feeds/luci/applications/luci-app-scutclient rev-parse HEAD)" = "$SCUTCLIENT_COMMIT" ]
+git -C feeds/luci/applications/luci-app-scutclient apply \
+  "$WRAPPER_DIR/patches/2305/luci-app-scutclient-ucodebridge.patch"
+grep -Fq 'local fs = require "nixio.fs"' \
+  feeds/luci/applications/luci-app-scutclient/luasrc/controller/scutclient.lua
 
 # SCUT 联通辅助脚本。
 mkdir -p package/scut-unicom

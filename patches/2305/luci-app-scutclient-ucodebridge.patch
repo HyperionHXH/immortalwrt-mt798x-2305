@@ -1,0 +1,80 @@
+diff --git a/luasrc/controller/scutclient.lua b/luasrc/controller/scutclient.lua
+index b3d7388..4d6b1c2 100644
+--- a/luasrc/controller/scutclient.lua
++++ b/luasrc/controller/scutclient.lua
+@@ -1,11 +1,12 @@
+ module("luci.controller.scutclient", package.seeall)
+ 
+-http = require "luci.http"
+-fs = require "nixio.fs"
+-sys  = require "luci.sys"
++local http = require "luci.http"
++local fs = require "nixio.fs"
++local sys = require "luci.sys"
++local luci_template = require "luci.template"
+ 
+-log_file = "/tmp/scutclient.log"
+-log_file_backup = "/tmp/scutclient.log.backup.log"
++local log_file = "/tmp/scutclient.log"
++local log_file_backup = "/tmp/scutclient.log.backup.log"
+ 
+ function index()
+ 	if not fs.access("/etc/config/scutclient") then
+@@ -42,8 +43,9 @@ end
+ 
+ function get_log()
+ 	local send_log_lines = 75
++	local client_log
+ 	if fs.access(log_file) then
+-		client_log = sys.exec("tail -n "..send_log_lines.." " .. log_file)
++		client_log = sys.exec("tail -n "..send_log_lines.." " .. log_file)
+ 	else
+-		client_log = "Unable to access the log file!"
++		client_log = "Unable to access the log file!"
+ 	end
+@@ -55,16 +56,16 @@ end
+ 
+ function action_about()
+-	luci.template.render("scutclient/about")
++	luci_template.render("scutclient/about")
+ end
+ 
+ 
+ function action_status()
+-	luci.template.render("scutclient/status")
+-	if luci.http.formvalue("logoff") == "1" then
+-		luci.sys.call("/etc/init.d/scutclient stop > /dev/null")
++	luci_template.render("scutclient/status")
++	if http.formvalue("logoff") == "1" then
++		sys.call("/etc/init.d/scutclient stop > /dev/null")
+ 	end
+-	if luci.http.formvalue("redial") == "1" then
+-		luci.sys.call("/etc/init.d/scutclient stop > /dev/null")
+-		luci.sys.call("/etc/init.d/scutclient start > /dev/null")
++	if http.formvalue("redial") == "1" then
++		sys.call("/etc/init.d/scutclient stop > /dev/null")
++		sys.call("/etc/init.d/scutclient start > /dev/null")
+ 	end
+ end
+@@ -101,17 +102,17 @@ function get_dbgtar()
+ 
+ 	fs.mkdirr(tar_dir)
+ 	table.foreach(tar_files, function(i, v)
+-			luci.sys.call("cp " .. v .. " " .. tar_dir)
++			sys.call("cp " .. v .. " " .. tar_dir)
+ 	end)
+ 
+ 	if fs.access(log_file_backup) then
+-		luci.sys.call("cat " .. log_file_backup .. " >> " .. tar_dir .. "/scutclient.log")
++		sys.call("cat " .. log_file_backup .. " >> " .. tar_dir .. "/scutclient.log")
+ 	end
+ 	if fs.access(log_file) then
+-		luci.sys.call("cat " .. log_file .. " >> " .. tar_dir .. "/scutclient.log")
++		sys.call("cat " .. log_file .. " >> " .. tar_dir .. "/scutclient.log")
+ 	end
+ 	http.prepare_content("application/octet-stream")
+ 	http.write(sys.exec("tar -C " .. tar_dir .. " -cf - ."))
+-	luci.sys.call("rm -rf " .. tar_dir)
++	sys.call("rm -rf " .. tar_dir)
+ 	http.close()
+ end

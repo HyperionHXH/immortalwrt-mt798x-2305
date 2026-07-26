@@ -100,6 +100,9 @@ Action 会核对 23.05 源码提交。上游分支移动后必须先重新审查
 用户之前反馈 23.05 固件可用，插件集合包括：
 
 - scutclient
+
+`luci-app-scutclient` 固定到已检查的上游提交，并应用 LuCI `ucodebridge` 兼容补丁。旧控制器把 `fs`、`sys`、`http` 当作全局变量，在当前 23.05 LuCI 中会导致整个管理页面报 `attempt to index global 'fs'`；Action 会在编译前校验这些依赖已经改为局部变量。
+
 - Passwall / Xray / Hysteria / Sing-Box
 - OpenClash
 - Tailscale

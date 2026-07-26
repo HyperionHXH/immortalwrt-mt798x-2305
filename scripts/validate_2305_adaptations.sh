@@ -9,6 +9,7 @@ MT7981_IMAGE="$OPENWRT_DIR/target/linux/mediatek/image/mt7981.mk"
 MT7986_IMAGE="$OPENWRT_DIR/target/linux/mediatek/image/mt7986.mk"
 MT7981_NETWORK="$OPENWRT_DIR/target/linux/mediatek/mt7981/base-files/etc/board.d/02_network"
 MT7981_UPGRADE="$OPENWRT_DIR/target/linux/mediatek/mt7981/base-files/lib/upgrade/platform.sh"
+SCUTCLIENT_CONTROLLER="$OPENWRT_DIR/feeds/luci/applications/luci-app-scutclient/luasrc/controller/scutclient.lua"
 
 fail() {
   echo "适配校验失败：$*" >&2
@@ -91,6 +92,22 @@ require_file "$MT7981_IMAGE"
 require_file "$MT7986_IMAGE"
 require_file "$MT7981_NETWORK"
 require_file "$MT7981_UPGRADE"
+require_file "$SCUTCLIENT_CONTROLLER"
+
+grep -Fq 'local http = require "luci.http"' "$SCUTCLIENT_CONTROLLER" || \
+  fail "scutclient 控制器未兼容 LuCI ucodebridge：http 不是局部变量"
+grep -Fq 'local fs = require "nixio.fs"' "$SCUTCLIENT_CONTROLLER" || \
+  fail "scutclient 控制器未兼容 LuCI ucodebridge：fs 不是局部变量"
+grep -Fq 'local sys = require "luci.sys"' "$SCUTCLIENT_CONTROLLER" || \
+  fail "scutclient 控制器未兼容 LuCI ucodebridge：sys 不是局部变量"
+grep -Fq 'local luci_template = require "luci.template"' "$SCUTCLIENT_CONTROLLER" || \
+  fail "scutclient 控制器未兼容 LuCI ucodebridge：luci.template 不是局部变量"
+! grep -Fq 'local template = require "luci.template"' "$SCUTCLIENT_CONTROLLER" || \
+  fail "scutclient 控制器用局部变量遮蔽了 LuCI dispatcher 的 template 路由函数"
+grep -Fq 'template("scutclient/logs")' "$SCUTCLIENT_CONTROLLER" || \
+  fail "scutclient 控制器缺少日志页面的 template 路由"
+! grep -Eq '^[[:space:]]*luci\.(http|sys|template)\.' "$SCUTCLIENT_CONTROLLER" || \
+  fail "scutclient 控制器仍直接使用不可靠的 luci 全局变量"
 
 mt7981_config="$OPENWRT_DIR/defconfig/mt7981-ax3000.config"
 mt7986_config="$OPENWRT_DIR/defconfig/mt7986-ax6000.config"

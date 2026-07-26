@@ -158,7 +158,7 @@ zyxel_ex5700
 - `cmcc_xr30-emmc` 有自己的 MAC 偏移处理，不会改动现有 `cmcc_rax3000m-emmc` 的偏移。
 - 增加 XR30 eMMC 时，同时把 eMMC 校准 preinit 匹配从过时的 `cmcc,rax3000m-em` 修正为 `cmcc,rax3000m-emmc`。
 - `ikuai_q3000` 从 21.02 的 DSA 风格板级描述适配而来，并改成 23.05 可用的 SPI bus-width 属性和当前 base-files 放置方式。原始 recipe 的 `IMAGE_SIZE=114816k` 与 DTS 的 64 MiB UBI 分区不一致，现已按真实分区修正为 `65536k`。
-- `honor_fur-602` 已从 21.02 的旧 `gsw` 写法改成 23.05 风格的 DSA/`mt7531` 交换机描述，LAN/WAN 由 `lan1 lan2 lan3` 和 `wan` 生成，并补齐 DSA HNAT。2026-07-26 的实机抓包已确认设备能完成启动、网口以 1 Gbps 建链，并从有线发送源地址为 `192.168.1.1` 的 IPv4 报文和 IPv6 RA；MT7531/DSA 数据通路不是当前阻塞点。由于首次诊断脚本未在链路重连后保住 `192.168.1.2`，LuCI、SSH、IPv4 DHCP 和三个 LAN 口仍需用修正后的脚本继续验证，当前属于部分实机验证。
+- `honor_fur-602` 已从 21.02 的旧 `gsw` 写法改成 23.05 风格的 DSA/`mt7531` 交换机描述，LAN/WAN 由 `lan1 lan2 lan3` 和 `wan` 生成，并补齐 DSA HNAT。2026-07-26 的实机测试已确认设备完成启动、网口以 1 Gbps 建链、`192.168.1.1` ping 正常，LuCI HTTP 和 SSH 端口均可连接。首次进入 LuCI 出现的 `scutclient.lua` 全局变量异常属于通用插件兼容问题，不是 FUR602 DTS/DSA 故障；构建流程已为该插件加入 `ucodebridge` 兼容补丁。Wi-Fi、WAN、IPv4 DHCP、三个 LAN 口映射、按钮、MAC 和 sysupgrade 仍需继续实机验证。
 - `newland_nl-wr8103`、`newland_nl-wr9103` 和 `routerich_ax3000` 仍从 21.02 的 MT7981 `gsw` 设备描述适配而来。当前 23.05 源码的 mt7981 内核配置仍启用旧 `MT753X_GSW` 驱动，所以这条路线在结构上是可编译的，但仍需实机验证。
 - `routerich_ax3000` 会把 5 GHz Wi-Fi MAC 写入当前 23.05 的 `mt7981.dbdc.b1.dat` 路径，不再依赖旧的 `l1dat if2dat` 辅助路径。
 - `ruijie_rg-x30e*` 适配为 6 个 DSA 布局：RG-X30E 和 RG-X30E Pro 各自的普通、stock、firmware2 版本。Wi-Fi MAC 处理直接写当前 23.05 的 MT7981 dat 文件，不再依赖旧的 `l1dat if2dat` 路径。镜像上限已按每个 DTS 的真实 UBI 分区分别修正：普通布局 `114176k`，stock/firmware2 布局 `35328k`。小分区布局装不下当前插件集时应让编译失败，不能放宽上限生成可能越界的固件。
