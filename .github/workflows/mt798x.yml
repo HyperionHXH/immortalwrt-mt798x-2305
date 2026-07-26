@@ -52,25 +52,28 @@ jobs:
           sudo apt clean
           sudo rm -rf /var/lib/apt/lists/*
 
-      - name: 释放 GitHub Runner 编译空间
-        uses: easimon/maximize-build-space@v10
-        with:
-          swap-size-mb: 512
-          temp-reserve-mb: 1024
-          # 当前 Runner 镜像存在额外空间开销；预留 16 GiB，避免根分区被压到 100%。
-          root-reserve-mb: 16384
-          remove-dotnet: 'true'
-          remove-android: 'true'
-          remove-haskell: 'true'
-          remove-codeql: 'true'
-          remove-docker-images: 'true'
+      - name: 清理 GitHub Runner 编译空间
+        run: |
+          echo "清理前："
+          df -h /
+
+          # 不再使用 maximize-build-space：它在当前 Runner 镜像上会把根分区压到约 1 GiB。
+          # 这里只删除 MT798x 编译不需要的预装 SDK，工作区仍直接使用根分区。
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /opt/hostedtoolcache/CodeQL
+          sudo docker image prune --all --force || true
+
+          echo "清理后："
+          df -h /
 
       - name: 检查 Runner 可用空间
         run: |
           df -h / "$GITHUB_WORKSPACE"
-          root_available_kb="$(df --output=avail / | tail -1)"
-          if [ "$root_available_kb" -lt 1048576 ]; then
-            echo "错误：根分区可用空间不足 1 GiB，停止编译以避免中途损坏。" >&2
+          workspace_available_kb="$(df --output=avail "$GITHUB_WORKSPACE" | tail -1)"
+          if [ "$workspace_available_kb" -lt 73400320 ]; then
+            echo "错误：工作区可用空间不足 70 GiB，停止编译以避免中途耗尽。" >&2
             exit 1
           fi
 
@@ -118,6 +121,7 @@ jobs:
               exit 1
             }
           }
+          df -h / "$GITHUB_WORKSPACE"
 
       - name: 编译固件
         id: compileopenwrt
@@ -127,9 +131,11 @@ jobs:
             echo "并行编译失败或超时，改用单线程详细日志重试..."
             timeout 2h make -j1 V=s || {
               echo "重试后编译仍失败" >&2
+              df -h / "$GITHUB_WORKSPACE"
               exit 1
             }
           }
+          df -h / "$GITHUB_WORKSPACE"
 
       - name: 打包固件
         run: |
