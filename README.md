@@ -71,6 +71,16 @@ feeds 刷新是必须的，因为 `luci`、`lua-cjson` 等依赖会影响 `defau
 
 本仓库会把上游 23.05 的普通 LAN 默认地址从 `192.168.6.1` 明确改为 `192.168.1.1`。Action 会在编译前运行设备适配校验，分区上限、FUR602 DSA/HNAT 或默认地址不符合预期时直接停止。
 
+### FUR602 不拆机诊断
+
+如果 FUR602 启动后常亮绿灯但 LAN 无法访问，先不要继续刷机。将电脑用网线直连路由器，同时保留 Wi-Fi 上网，以管理员身份打开 PowerShell，在仓库目录运行：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\collect_fur602_boot.ps1 -InterfaceAlias "以太网" -CaptureSeconds 60
+```
+
+脚本会临时加入 `192.168.1.2/24` 和 `192.168.6.2/24` 探测地址，并把以太网接口 metric 临时调到 `500`，因此互联网仍优先走 Wi-Fi，路由器管理网段走网线。它会采集物理链路、DHCP、ARP、端口连通性和开机报文，结束时自动恢复 metric 并移除临时地址。先检查或提交生成目录中的 `summary.txt`；只有需要分析报文时再使用可能包含其他网卡流量的 `fur602-boot.pcapng`。若网卡始终显示 `Disconnected`，问题在 MT7531/DSA 数据通路；若物理链路为 `Up` 但只响应 `192.168.6.1`，说明升级时保留了旧配置。
+
 Action 会核对 23.05 源码提交。上游分支移动后必须先重新审查并更新固定提交，旧补丁不会直接套到未审查的新源码上。
 
 ## Wi-Fi 状态
