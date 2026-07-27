@@ -37,11 +37,13 @@ require_enabled luci-app-sqm
 require_enabled sqm-scripts
 require_enabled kmod-sched-cake
 require_enabled kmod-ifb
-require_enabled iptables
 require_enabled iptables-mod-ipopt
 
 tc_provider="$(find_enabled tc tc-tiny tc-full || true)"
 [ -n "$tc_provider" ] || fail "缺少 tc、tc-tiny 或 tc-full"
+
+iptables_provider="$(find_enabled iptables iptables-nft iptables-legacy || true)"
+[ -n "$iptables_provider" ] || fail "缺少 iptables、iptables-nft 或 iptables-legacy"
 
 # 保留 MTK Easy QoS 供用户选择，但不要与 SQM 同时在同一接口启用。
 require_enabled luci-app-eqos-mtk
@@ -49,4 +51,4 @@ require_enabled luci-app-eqos-mtk
 require_disabled luci-app-tailscale
 require_disabled tailscale
 
-echo "23.05 软件包校验通过：已加入 SQM（tc provider: $tc_provider），已移除 Tailscale。"
+echo "23.05 软件包校验通过：已加入 SQM（tc: $tc_provider，iptables: $iptables_provider），已移除 Tailscale。"
