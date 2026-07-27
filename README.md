@@ -1,6 +1,6 @@
 # ImmortalWrt MT798x 23.05 固件编译
 
-这是当前已验证可用的 MT798x 23.05 自用固件编译仓库，用来编译带 SCUT、Passwall、OpenClash、Tailscale 等插件的 ImmortalWrt 固件。
+这是当前已验证可用的 MT798x 23.05 自用固件编译仓库，用来编译带 SCUT、Passwall、OpenClash、SQM 等插件的 ImmortalWrt 固件。
 
 - 源码仓库：`padavanonly/immortalwrt-mt798x-6.6`
 - 源码分支：`openwrt-23.05`
@@ -95,20 +95,33 @@ Action 会核对 23.05 源码提交。上游分支移动后必须先重新审查
 
 不要删除 `/sbin/wifi`。以前 CI 里删除 `/sbin/wifi` 的做法属于另一条 `luci-app-mtk + wifi-profile` 实验路线，不适用于当前这个已验证的 23.05 路线。
 
-## 已知可用插件
+## 固件插件
 
-用户之前反馈 23.05 固件可用，插件集合包括：
+四个编译变种都会包含以下 LuCI 插件：
 
-- scutclient
+- SCUT 校园网客户端
+- Passwall（Xray、Hysteria、Sing-Box、Shadowsocks Rust、TUIC）
+- OpenClash
+- SQM 智能队列管理
+- MTK Easy QoS
+- MTK TurboACC
+- MTK Wi-Fi 配置
+- MTK UPnP
+- DDNS
+- Socat
+- FRP 客户端
+- OpenVPN 客户端和服务端
+- WireGuard
+- TTYD 网页终端
+- 定时重启
+- VLMCSD
+- Argon 和 Bootstrap Mod 主题
+
+额外组件包括 USB 存储与 ext4、vfat、exFAT、NTFS 文件系统支持、`block-mount`、`fdisk`、`xl2tpd`、`scut-unicom` 和 `bind-host`。Tailscale 已从固件中移除。
 
 `luci-app-scutclient` 固定到已检查的上游提交，并应用 LuCI `ucodebridge` 兼容补丁。旧控制器把 `fs`、`sys`、`http` 当作全局变量，在当前 23.05 LuCI 中会导致整个管理页面报 `attempt to index global 'fs'`；Action 会在编译前校验这些依赖已经改为局部变量。
 
-- Passwall / Xray / Hysteria / Sing-Box
-- OpenClash
-- Tailscale
-- Argon 主题
-- USB 存储相关模块
-- block-mount
+MTK Easy QoS 暂时保留，SQM 默认不会自动启用。不要让 Easy QoS 和 SQM 同时管理同一个 WAN 接口，否则两者会互相覆盖队列规则。
 
 ## WSL 注意事项
 

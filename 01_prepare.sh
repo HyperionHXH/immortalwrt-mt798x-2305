@@ -16,7 +16,7 @@ else
 fi
 
 # 使用 ImmortalWrt 默认 feeds。23.05 MT798x 源码树里已经带有匹配的
-# passwall/xray/sing-box/tailscale 包集合。
+# passwall/xray/sing-box 包集合。
 ./scripts/feeds update -a
 
 # 先应用本地 23.05 风格设备适配，再启用选中的设备 profile。
@@ -42,10 +42,6 @@ mkdir -p package/scut-unicom
 wget --tries=5 --timeout=30 \
   https://raw.githubusercontent.com/wykdg/route_script/master/scut-unicom/Makefile \
   -O package/scut-unicom/Makefile
-
-# tailscale 的 LuCI 界面；tailscale 本体来自默认 feed。
-rm -rf package/luci-app-tailscale
-git clone --depth=1 https://github.com/asvow/luci-app-tailscale.git package/luci-app-tailscale
 
 ./scripts/feeds install -a
 

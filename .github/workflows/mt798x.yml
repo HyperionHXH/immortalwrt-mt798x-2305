@@ -110,6 +110,7 @@ jobs:
           # 使用 xz 压缩 squashfs，固件通常比默认 gzip 小 20-30%
           echo "CONFIG_TARGET_SQUASHFS_XZ=y" >> .config
           make defconfig
+          bash ../scripts/validate_2305_packages.sh .config
 
       - name: 下载源码包
         run: |

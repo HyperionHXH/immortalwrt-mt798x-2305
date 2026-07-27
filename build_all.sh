@@ -43,6 +43,7 @@ for entry in "${VARIANTS[@]}"; do
   cat "defconfig/${variant}.config" > .config
   bash ../02_add_package.sh
   make defconfig
+  bash "$SCRIPT_DIR/scripts/validate_2305_packages.sh" .config
 
   # 下载新增依赖（增量）
   make download -j"$DOWNLOAD_JOBS"
