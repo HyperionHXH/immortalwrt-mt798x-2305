@@ -11,6 +11,9 @@ MT7981_NETWORK="$OPENWRT_DIR/target/linux/mediatek/mt7981/base-files/etc/board.d
 MT7981_UPGRADE="$OPENWRT_DIR/target/linux/mediatek/mt7981/base-files/lib/upgrade/platform.sh"
 SCUTCLIENT_CONTROLLER="$OPENWRT_DIR/feeds/luci/applications/luci-app-scutclient/luasrc/controller/scutclient.lua"
 SCUTCLIENT_PATCH="$WRAPPER_DIR/patches/2305/packages/luci-app-scutclient-ucodebridge.patch"
+DOWNLOAD_SCRIPT="$OPENWRT_DIR/scripts/download.pl"
+LOCAL_MIRRORS="$OPENWRT_DIR/scripts/localmirrors"
+DOWNLOAD_PATCH="$WRAPPER_DIR/patches/2305/build-system/download-reliability.patch"
 
 fail() {
   echo "适配校验失败：$*" >&2
@@ -95,6 +98,24 @@ require_file "$MT7981_NETWORK"
 require_file "$MT7981_UPGRADE"
 require_file "$SCUTCLIENT_CONTROLLER"
 require_file "$SCUTCLIENT_PATCH"
+require_file "$DOWNLOAD_SCRIPT"
+require_file "$LOCAL_MIRRORS"
+require_file "$DOWNLOAD_PATCH"
+
+grep -Fq -- '--speed-limit 1024 --speed-time 30 --max-time 300' "$DOWNLOAD_SCRIPT" || \
+  fail "download.pl 缺少低速连接和单次下载时限"
+grep -Fq -- '--retry 2 --retry-delay 2 --retry-max-time 180' "$DOWNLOAD_SCRIPT" || \
+  fail "download.pl 的重试次数仍可能长时间占用 Action"
+grep -Fq 'open LM, "$scriptdir/localmirrors"' "$DOWNLOAD_SCRIPT" || \
+  fail "download.pl 不再读取 scripts/localmirrors"
+[ "$(sed -n '1p' "$LOCAL_MIRRORS")" = 'https://sources.cdn.openwrt.org' ] || \
+  fail "OpenWrt CDN 不是首选下载源"
+
+kernel_cdn_line="$(grep -nF 'push @mirrors, "https://cdn.kernel.org/pub/$dir"' "$DOWNLOAD_SCRIPT" | cut -d: -f1 || true)"
+kernel_iscas_line="$(grep -nF 'push @mirrors, "https://mirror.iscas.ac.cn/kernel.org/$dir"' "$DOWNLOAD_SCRIPT" | cut -d: -f1 || true)"
+[ -n "$kernel_cdn_line" ] && [ -n "$kernel_iscas_line" ] && \
+  [ "$kernel_cdn_line" -lt "$kernel_iscas_line" ] || \
+  fail "KERNEL 下载仍然优先访问 ISCAS，而不是 cdn.kernel.org"
 
 grep -Fq 'local http = require "luci.http"' "$SCUTCLIENT_CONTROLLER" || \
   fail "scutclient 控制器未兼容 LuCI ucodebridge：http 不是局部变量"

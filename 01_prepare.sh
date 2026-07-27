@@ -3,6 +3,17 @@ set -euo pipefail
 
 WRAPPER_DIR="$(cd "$(dirname "$0")" && pwd)"
 SCUTCLIENT_COMMIT="d9d618be97870813252b5ce7540f6a4ea4c22ab0"
+DOWNLOAD_PATCH="$WRAPPER_DIR/patches/2305/build-system/download-reliability.patch"
+
+if git apply --reverse --check "$DOWNLOAD_PATCH" >/dev/null 2>&1; then
+  echo "下载器可靠性补丁已经应用。"
+elif git apply --check "$DOWNLOAD_PATCH"; then
+  git apply "$DOWNLOAD_PATCH"
+  echo "已应用下载器可靠性补丁。"
+else
+  echo "错误：下载器可靠性补丁与当前源码不匹配。" >&2
+  exit 1
+fi
 
 # 使用 ImmortalWrt 默认 feeds。23.05 MT798x 源码树里已经带有匹配的
 # passwall/xray/sing-box/tailscale 包集合。
