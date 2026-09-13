@@ -31,6 +31,44 @@ fi
 # passwall/xray/sing-box 包集合。
 ./scripts/feeds update -a
 
+# ---- passwall 全家桶改为编译时拉取上游最新版 ----
+# 23.05 feeds 里的 golang 工具链和 passwall 核心组件已被冻结（xray 停在
+# 24.12.31、sing-box 停在 1.11.15，Go 1.21 也编不了新核心）。这里用
+# immortalwrt/packages master 的 lang/golang 覆盖 feed 旧版，删除 feed 里
+# 冻结的核心组件，改用 xiaorouji/openwrt-passwall-packages main 分支；
+# luci-app-passwall 用 immortalwrt/luci openwrt-25.12 分支（26.x，
+# 23.05 feed 冻结在 25.8.5）。
+echo ">> 用 master 的 lang/golang 替换 feeds/packages/lang/golang ..."
+golang_tmp="$(mktemp -d)"
+git clone --depth=1 --filter=blob:none --sparse \
+  https://github.com/immortalwrt/packages.git "$golang_tmp/packages"
+git -C "$golang_tmp/packages" sparse-checkout set lang/golang
+rm -rf feeds/packages/lang/golang
+cp -a "$golang_tmp/packages/lang/golang" feeds/packages/lang/golang
+rm -rf "$golang_tmp"
+
+echo ">> 删除 feeds 里冻结的 passwall 核心组件（改用上游 main 分支）..."
+for pw_pkg in chinadns-ng dns2socks geoview hysteria ipt2socks microsocks naiveproxy \
+              shadow-tls shadowsocks-rust shadowsocksr-libev simple-obfs sing-box tcping \
+              v2ray-geodata v2ray-plugin xray-core xray-plugin; do
+  rm -rf "feeds/packages/net/$pw_pkg"
+done
+
+echo ">> 克隆 xiaorouji/openwrt-passwall-packages (main) ..."
+rm -rf package/passwall-packages
+git clone --depth=1 -b main \
+  https://github.com/xiaorouji/openwrt-passwall-packages.git package/passwall-packages
+
+echo ">> 用 luci feed 25.12 的 luci-app-passwall (26.x) 替换 23.05 冻结版 ..."
+luci_tmp="$(mktemp -d)"
+git clone --depth=1 -b openwrt-25.12 --filter=blob:none --sparse \
+  https://github.com/immortalwrt/luci.git "$luci_tmp/luci"
+git -C "$luci_tmp/luci" sparse-checkout set applications/luci-app-passwall
+rm -rf package/luci-app-passwall
+cp -a "$luci_tmp/luci/applications/luci-app-passwall" package/luci-app-passwall
+rm -rf "$luci_tmp"
+rm -rf feeds/luci/applications/luci-app-passwall
+
 # 先应用本地 23.05 风格设备适配，再启用选中的设备 profile。
 bash "$WRAPPER_DIR/scripts/apply_2305_adapted_devices.sh" "$PWD"
 bash "$WRAPPER_DIR/scripts/enable_2305_existing_devices.sh" "$PWD"
