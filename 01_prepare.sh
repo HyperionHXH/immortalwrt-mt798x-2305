@@ -64,10 +64,12 @@ luci_tmp="$(mktemp -d)"
 git clone --depth=1 -b openwrt-25.12 --filter=blob:none --sparse \
   https://github.com/immortalwrt/luci.git "$luci_tmp/luci"
 git -C "$luci_tmp/luci" sparse-checkout set applications/luci-app-passwall
-rm -rf package/luci-app-passwall
-cp -a "$luci_tmp/luci/applications/luci-app-passwall" package/luci-app-passwall
-rm -rf "$luci_tmp"
+# 注意：必须放回 luci feed 内部（feeds/luci/applications/...）。
+# 应用 Makefile 用 `include ../../luci.mk` 引用 feed 根的构建模板，
+# 复制到 package/ 下会让相对路径断裂、包被 make 静默丢弃。
 rm -rf feeds/luci/applications/luci-app-passwall
+cp -a "$luci_tmp/luci/applications/luci-app-passwall" feeds/luci/applications/luci-app-passwall
+rm -rf "$luci_tmp"
 
 # 先应用本地 23.05 风格设备适配，再启用选中的设备 profile。
 bash "$WRAPPER_DIR/scripts/apply_2305_adapted_devices.sh" "$PWD"

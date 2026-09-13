@@ -51,4 +51,12 @@ require_enabled luci-app-eqos-mtk
 require_disabled luci-app-tailscale
 require_disabled tailscale
 
-echo "23.05 软件包校验通过：已加入 SQM（tc: $tc_provider，iptables: $iptables_provider），已移除 Tailscale。"
+# passwall 套件必须完整选中，防止 luci.mk 链路断裂之类的问题导致包被静默丢弃。
+require_enabled luci-app-passwall
+require_enabled chinadns-ng
+require_enabled xray-core
+require_enabled sing-box
+require_enabled hysteria
+require_enabled geoview
+
+echo "23.05 软件包校验通过：已加入 SQM（tc: $tc_provider，iptables: $iptables_provider），已移除 Tailscale，passwall 套件完整。"
