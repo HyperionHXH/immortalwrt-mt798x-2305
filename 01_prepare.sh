@@ -68,6 +68,16 @@ for golang_cfg in defconfig/*.config; do
   printf 'CONFIG_GOLANG_EXTERNAL_BOOTSTRAP_ROOT="%s"\n' "$boot_dir" >> "$golang_cfg"
 done
 
+# ---- rust 工具链升级（新版 shadowsocks-rust 需要 rustc 1.91）----
+# 23.05 feed 的 rust（1.85）太老；rust 包下载官方源码 + 自动下载 stage0
+# 引导构建，对 23.05 buildroot 透明，只改版本数据即可。
+echo ">> 升级 feeds/packages/lang/rust 到 1.91 ..."
+sed -i \
+  -e 's/^PKG_VERSION:=1.85.0/PKG_VERSION:=1.91.0/' \
+  -e 's|^PKG_HASH:=.*|PKG_HASH:=327f528151753013f0a2b2c7f48955a033d718f269a4bc586314d675d0d43e8a|' \
+  feeds/packages/lang/rust/Makefile
+grep -n "PKG_VERSION\|PKG_HASH" feeds/packages/lang/rust/Makefile | head -2
+
 # ---- passwall 全家桶改为编译时拉取上游最新版 ----
 # 23.05 feeds 里的 passwall 核心组件已被冻结（xray 停在 24.12.31、
 # sing-box 停在 1.11.15）。golang 工具链已在上面升级到 1.27，
