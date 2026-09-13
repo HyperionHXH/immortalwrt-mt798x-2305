@@ -31,22 +31,49 @@ fi
 # passwall/xray/sing-box 包集合。
 ./scripts/feeds update -a
 
-# ---- passwall 全家桶改为编译时拉取上游最新版 ----
-# 23.05 feeds 里的 golang 工具链和 passwall 核心组件已被冻结（xray 停在
-# 24.12.31、sing-box 停在 1.11.15，Go 1.21 也编不了新核心）。这里用
-# immortalwrt/packages master 的 lang/golang 覆盖 feed 旧版，删除 feed 里
-# 冻结的核心组件，改用 xiaorouji/openwrt-passwall-packages main 分支；
-# luci-app-passwall 用 immortalwrt/luci openwrt-25.12 分支（26.x，
-# 23.05 feed 冻结在 25.8.5）。
-echo ">> 用 master 的 lang/golang 替换 feeds/packages/lang/golang ..."
-golang_tmp="$(mktemp -d)"
-git clone --depth=1 --filter=blob:none --sparse \
-  https://github.com/immortalwrt/packages.git "$golang_tmp/packages"
-git -C "$golang_tmp/packages" sparse-checkout set lang/golang
-rm -rf feeds/packages/lang/golang
-cp -a "$golang_tmp/packages/lang/golang" feeds/packages/lang/golang
-rm -rf "$golang_tmp"
+# ---- golang 工具链升级到 1.27（新版 passwall 核心需要）----
+# 23.05 feed 的 golang（1.21）用 go1.4→go1.17 两级自举编目标版本，
+# go1.17 编不了 Go 1.27。这里保持 23.05 原生单包结构，只改版本数据，
+# 并把"编目标版本"的引导换成官方预编译 go1.24.13（ImmortalWrt master
+# 官方给 Go 1.27 配对的 bootstrap 版本），跳过整条自举链。
+# 注意：必须在 feeds update 之后执行，否则改动会被 update 重建的 feeds 覆盖。
+echo ">> 升级 feeds/packages/lang/golang 到 Go 1.27 ..."
+sed -i \
+  -e 's/^GO_VERSION_MAJOR_MINOR:=1.21/GO_VERSION_MAJOR_MINOR:=1.27/' \
+  -e 's/^GO_VERSION_PATCH:=13/GO_VERSION_PATCH:=0/' \
+  -e 's|^PKG_HASH:=.*|PKG_HASH:=7002403d7cc44529ef6d26f69a44818263395ead7c16c05a5808ae047ebeb0e5|' \
+  feeds/packages/lang/golang/golang/Makefile
+# 目标版本的 GOROOT_BOOTSTRAP 从硬编码的 go1.17 目录改为 BOOTSTRAP_ROOT_DIR
+# （设置了 CONFIG_GOLANG_EXTERNAL_BOOTSTRAP_ROOT 时即外部预编译工具链）
+sed -i 's/GOROOT_BOOTSTRAP="$(BOOTSTRAP_1_17_BUILD_DIR)"/GOROOT_BOOTSTRAP="$(BOOTSTRAP_ROOT_DIR)"/' \
+  feeds/packages/lang/golang/golang/Makefile
+grep -n "GO_VERSION_MAJOR_MINOR\|GOROOT_BOOTSTRAP" feeds/packages/lang/golang/golang/Makefile | head -4
 
+boot_dir="$(pwd)/.go-bootstrap-prebuilt"
+if [ ! -x "$boot_dir/bin/go" ]; then
+  rm -rf "$boot_dir"; mkdir -p "$boot_dir"
+  wget --tries=5 --timeout=30 -O /tmp/go-bootstrap.tgz \
+    https://mirrors.ustc.edu.cn/golang/go1.24.13.linux-amd64.tar.gz \
+  || wget --tries=5 --timeout=30 -O /tmp/go-bootstrap.tgz \
+    https://go.dev/dl/go1.24.13.linux-amd64.tar.gz
+  tar -xzf /tmp/go-bootstrap.tgz -C "$boot_dir" --strip-components=1
+  rm -f /tmp/go-bootstrap.tgz
+fi
+"$boot_dir/bin/go" version
+
+# 把外部 bootstrap 路径写进源码树各 defconfig，make 时随 .config 生效
+for golang_cfg in defconfig/*.config; do
+  [ -f "$golang_cfg" ] || continue
+  sed -i '/^CONFIG_GOLANG_EXTERNAL_BOOTSTRAP_ROOT=/d' "$golang_cfg"
+  printf 'CONFIG_GOLANG_EXTERNAL_BOOTSTRAP_ROOT="%s"\n' "$boot_dir" >> "$golang_cfg"
+done
+
+# ---- passwall 全家桶改为编译时拉取上游最新版 ----
+# 23.05 feeds 里的 passwall 核心组件已被冻结（xray 停在 24.12.31、
+# sing-box 停在 1.11.15）。golang 工具链已在上面升级到 1.27，
+# 这里删除 feed 里冻结的核心组件，改用 xiaorouji/openwrt-passwall-packages
+# main 分支；luci-app-passwall 用 immortalwrt/luci openwrt-25.12 分支
+# （26.x，23.05 feed 冻结在 25.8.5）。
 echo ">> 删除 feeds 里冻结的 passwall 核心组件（改用上游 main 分支）..."
 for pw_pkg in chinadns-ng dns2socks geoview hysteria ipt2socks microsocks naiveproxy \
               shadow-tls shadowsocks-rust shadowsocksr-libev simple-obfs sing-box tcping \
