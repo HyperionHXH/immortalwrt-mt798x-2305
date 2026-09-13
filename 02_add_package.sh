@@ -6,6 +6,7 @@ shopt -s extglob
 # 读取 package.conf 并把选择追加到 .config。
 # 普通包名会变成 CONFIG_PACKAGE_<name>=y；原始 CONFIG_* 行会原样写入，
 # 这样 package.conf 也能携带 LuCI 语言之类的选项。
+PACKAGE_CONF="${PACKAGE_CONF:-../package.conf}"
 while IFS= read -r entry || [ -n "$entry" ]; do
   entry="${entry//$'\r'/}"
   entry="${entry##+([[:space:]])}"
@@ -18,4 +19,4 @@ while IFS= read -r entry || [ -n "$entry" ]; do
   else
     echo "CONFIG_PACKAGE_${entry}=y"
   fi
-done < ../package.conf >> .config
+done < "$PACKAGE_CONF" >> .config
