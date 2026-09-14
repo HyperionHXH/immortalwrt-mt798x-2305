@@ -71,7 +71,10 @@ done
 # ---- rust 工具链升级（新版 shadowsocks-rust 需要 rustc 1.91）----
 # 23.05 feed 的 rust（1.85）太老；rust 包下载官方源码 + 自动下载 stage0
 # 引导构建，对 23.05 buildroot 透明，只改版本数据即可。
+# feed 自带的补丁是针对 1.85 源码的，1.91 上打不上（vendor 结构已变），
+# 直接移除——新版本源码通常已包含等价修复。
 echo ">> 升级 feeds/packages/lang/rust 到 1.91 ..."
+rm -rf feeds/packages/lang/rust/patches
 sed -i \
   -e 's/^PKG_VERSION:=1.85.0/PKG_VERSION:=1.91.0/' \
   -e 's|^PKG_HASH:=.*|PKG_HASH:=327f528151753013f0a2b2c7f48955a033d718f269a4bc586314d675d0d43e8a|' \
