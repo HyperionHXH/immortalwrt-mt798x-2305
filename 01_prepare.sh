@@ -79,7 +79,40 @@ sed -i \
   -e 's/^PKG_VERSION:=1.85.0/PKG_VERSION:=1.91.0/' \
   -e 's|^PKG_HASH:=.*|PKG_HASH:=327f528151753013f0a2b2c7f48955a033d718f269a4bc586314d675d0d43e8a|' \
   feeds/packages/lang/rust/Makefile
+
+# rust 1.87 起 bootstrap 的根配置文件从 config.toml 改名为 bootstrap.toml
+# （1.91 的 src/bootstrap/configure.py 只写 ./bootstrap.toml，bootstrap.py 也只
+# 读 bootstrap.toml，config.toml 仅是兼容回退），并且对显式传入的 --config 指向
+# 不存在的文件是硬错误：
+#   "Give a hard error if --config or RUST_BOOTSTRAP_CONFIG are set to a missing path"
+# 23.05 feed 的 Makefile 里那行 `--config $(HOST_BUILD_DIR)/config.toml` 于是在
+# 1.91 上必然抛 FileNotFoundError（rustc-1.91.0-src/.built 立即失败，日志里只有
+# 0.1 秒）。上游 openwrt/packages 在升到 1.87 时就是删掉这一行并调整了构建目标
+# 顺序（commit 95eef0f "Simplify the build invocation"），这里跟随上游做法。
+# 注意：buildroot 的 Host/Configure 仍会执行 `./configure`，它把参数写进
+# bootstrap.toml；即使没写上，bootstrap.py 对默认路径缺失也只会退化成空配置
+# （非 git 源码自动用 dist profile），不会报错。
+echo ">> 移除 rust Makefile 里已失效的 --config config.toml 参数 ..."
+sed -i -e '/--config $(HOST_BUILD_DIR)\/config\.toml/d' \
+  -e 's/dist build-manifest cargo llvm-tools rustc rust-std rust-src/dist build-manifest rustc rust-std cargo llvm-tools rust-src/' \
+  feeds/packages/lang/rust/Makefile
+
+# 断言升级真的生效，避免 feed 结构变化导致 sed 静默失配后又跑一次四小时的编译。
+if ! grep -q '^PKG_VERSION:=1.91.0' feeds/packages/lang/rust/Makefile; then
+  echo "错误：rust 版本未升级到 1.91。" >&2
+  exit 1
+fi
+if grep -q -- '--config $(HOST_BUILD_DIR)/config.toml' feeds/packages/lang/rust/Makefile; then
+  echo "错误：rust Makefile 仍带 --config config.toml，1.91 上会因缺少该文件失败。" >&2
+  exit 1
+fi
+if ! grep -q 'dist build-manifest rustc rust-std cargo llvm-tools rust-src' \
+     feeds/packages/lang/rust/Makefile; then
+  echo "错误：rust Makefile 的构建目标列表未按上游形态调整。" >&2
+  exit 1
+fi
 grep -n "PKG_VERSION\|PKG_HASH" feeds/packages/lang/rust/Makefile | head -2
+sed -n '/^define Host\/Compile/,/^endef/p' feeds/packages/lang/rust/Makefile
 
 # ---- passwall 全家桶改为编译时拉取上游最新版 ----
 # 23.05 feeds 里的 passwall 核心组件已被冻结（xray 停在 24.12.31、
