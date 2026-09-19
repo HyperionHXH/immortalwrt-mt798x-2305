@@ -128,9 +128,14 @@ jobs:
         id: compileopenwrt
         run: |
           cd openwrt
-          timeout 4h make -j$(nproc) || {
+          # mt7981-ax3000 要一次编 39 台设备的镜像，实测并行编译 237.6 分钟，
+          # 距 4h 上限只剩 2 分钟余量（换台慢一点的 runner 就会撞线）。
+          # 这里把并行尝试放宽到 4h30m、把单线程续跑收到 45 分钟：加上前后约 7 分钟
+          # 准备/下载、约 15 分钟打包和上传，最坏情况约 5h50m，仍在托管 runner 的
+          # 6 小时 job 上限内。
+          timeout 4h30m make -j$(nproc) || {
             echo "并行编译失败或超时，改用单线程详细日志重试..."
-            timeout 2h make -j1 V=s || {
+            timeout 45m make -j1 V=s || {
               echo "重试后编译仍失败" >&2
               df -h / "$GITHUB_WORKSPACE"
               exit 1
