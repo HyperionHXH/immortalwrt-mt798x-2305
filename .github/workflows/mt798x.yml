@@ -140,11 +140,52 @@ jobs:
 
       - name: 打包固件
         run: |
+          set -e -o pipefail
           rm -rf ./artifact/
           mkdir -p ./artifact/
           mv openwrt/bin/targets/mediatek/${{ env.platform }}/immortalwrt-*squashfs* ./artifact/
           cd artifact
-          7z a -t7z -m0=lzma2 -mx=9 -md=256m -mfb=273 -ms=on -mmt=on -myx=9 ../${{ env.image_name }}.7z .
+
+          # GitHub 单个 release 资产上限 2 GiB，而 Ubuntu 22.04 自带的 p7zip 16.02
+          # 在输入超过 4 GiB 时会直接 "System ERROR: E_FAIL"（exit 2）。
+          # mt7981-ax3000 变种会同时编出 50+ 个设备的镜像（约 4.3 GiB），两个限制都撞上，
+          # 所以这里按体积二选一：
+          #   装得下  -> 仍旧打成一个整包，文件名与以前完全一致；
+          #   装不下  -> 按设备拆成多个小包（下载时只取自己那台设备，不必为了一个
+          #              几十兆的镜像拉几个 G）。
+          bundle_limit=$((1400 * 1024 * 1024))
+          total_bytes=$(du -sb . | cut -f1)
+          release_artifacts=""
+
+          if [ "$total_bytes" -le "$bundle_limit" ]; then
+            echo ">> 打包整包（$(numfmt --to=iec "$total_bytes")）"
+            7z a -t7z -m0=lzma2 -mx=9 -md=256m -mfb=273 -ms=on -mmt=on -myx=9 \
+              "../${image_name}.7z" .
+            release_artifacts="../${image_name}.7z"
+          else
+            echo ">> 共 $(numfmt --to=iec "$total_bytes")，超过单资产上限，按设备拆分"
+            declare -A device_files=()
+            for f in immortalwrt-*squashfs*; do
+              stem="${f%-squashfs-*}"
+              device="${stem#immortalwrt-mediatek-${platform}-}"
+              if [ -n "${device_files[$device]:-}" ]; then
+                device_files[$device]="${device_files[$device]} $f"
+              else
+                device_files[$device]="$f"
+              fi
+            done
+            while read -r device; do
+              # shellcheck disable=SC2086
+              7z a -t7z -m0=lzma2 -mx=9 -md=256m -mfb=273 -ms=on -mmt=on -myx=9 \
+                "../${image_name}-${device}.7z" ${device_files[$device]}
+              release_artifacts="${release_artifacts:+${release_artifacts},}../${image_name}-${device}.7z"
+            done < <(printf '%s\n' "${!device_files[@]}" | sort)
+            echo ">> 按设备拆成 $(printf '%s\n' "${!device_files[@]}" | wc -l) 个包"
+          fi
+
+          echo "release_artifacts=${release_artifacts}" >> "$GITHUB_ENV"
+          echo ">> 本次上传的资产：${release_artifacts}"
+          ls -lh ../${image_name}*.7z
 
       - name: 创建 Release
         id: create_release
@@ -157,4 +198,4 @@ jobs:
           commit: main
           replacesArtifacts: true
           token: ${{ secrets.GITHUB_TOKEN }}
-          artifacts: ${{ env.image_name }}.7z
+          artifacts: ${{ env.release_artifacts }}
