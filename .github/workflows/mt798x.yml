@@ -153,6 +153,11 @@ jobs:
           #   装得下  -> 仍旧打成一个整包，文件名与以前完全一致；
           #   装不下  -> 按设备拆成多个小包（下载时只取自己那台设备，不必为了一个
           #              几十兆的镜像拉几个 G）。
+          #
+          # 注意：release-action 的 artifacts 是按 $GITHUB_WORKSPACE 解析的。本步骤的
+          # 工作目录就是 workspace 根，7z 写到 <root>/artifact/../ 正好落在 workspace 根，
+          # 所以这里只能写裸文件名；写成 ../<name>.7z 会被当作 workspace 的父目录，
+          # action 只会打一句 "did not match any files" 的 warning 然后上传 0 个资产。
           bundle_limit=$((1400 * 1024 * 1024))
           total_bytes=$(du -sb . | cut -f1)
           release_artifacts=""
@@ -161,7 +166,7 @@ jobs:
             echo ">> 打包整包（$(numfmt --to=iec "$total_bytes")）"
             7z a -t7z -m0=lzma2 -mx=9 -md=256m -mfb=273 -ms=on -mmt=on -myx=9 \
               "../${image_name}.7z" .
-            release_artifacts="../${image_name}.7z"
+            release_artifacts="${image_name}.7z"
           else
             echo ">> 共 $(numfmt --to=iec "$total_bytes")，超过单资产上限，按设备拆分"
             declare -A device_files=()
@@ -178,10 +183,19 @@ jobs:
               # shellcheck disable=SC2086
               7z a -t7z -m0=lzma2 -mx=9 -md=256m -mfb=273 -ms=on -mmt=on -myx=9 \
                 "../${image_name}-${device}.7z" ${device_files[$device]}
-              release_artifacts="${release_artifacts:+${release_artifacts},}../${image_name}-${device}.7z"
+              release_artifacts="${release_artifacts:+${release_artifacts},}${image_name}-${device}.7z"
             done < <(printf '%s\n' "${!device_files[@]}" | sort)
             echo ">> 按设备拆成 $(printf '%s\n' "${!device_files[@]}" | wc -l) 个包"
           fi
+
+          # 资产列表是相对 workspace 根的裸文件名（release-action 就按这个解析），
+          # 而本步骤此时的工作目录是 <workspace>/artifact，所以要加 ../ 才指得到文件。
+          for artifact in ${release_artifacts//,/ }; do
+            [ -f "../${artifact}" ] || {
+              echo "错误：打包产物不存在：$artifact" >&2
+              exit 1
+            }
+          done
 
           echo "release_artifacts=${release_artifacts}" >> "$GITHUB_ENV"
           echo ">> 本次上传的资产：${release_artifacts}"
@@ -197,5 +211,7 @@ jobs:
           tag: ${{ env.release_tag }}
           commit: main
           replacesArtifacts: true
+          # 资产路径写错时让这一步直接失败，而不是打个 warning 上传 0 个资产。
+          artifactErrorsFailBuild: true
           token: ${{ secrets.GITHUB_TOKEN }}
           artifacts: ${{ env.release_artifacts }}
