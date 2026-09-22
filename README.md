@@ -62,9 +62,14 @@ GitHub 单个 release 资产上限是 2 GiB，而 Ubuntu 22.04 自带的 p7zip 1
 # 依赖只需装一次（写进隔离环境，不污染系统）
 C:/Users/MiunaH/.workbuddy/binaries/python/envs/default/Scripts/python.exe -m pip install py7zr PySquashfsImage
 
+# 下载：本机直连 GitHub 只有 ~0.06 MB/s，加镜像约 4.7 MB/s（只影响下载，令牌不外传）
+python tools/fetch_release.py --mirror https://gh-proxy.com \
+  --repo HyperionHXH/immortalwrt-mt798x-2305 --tag immortalwrt-mt798x-scutclient-<日期> \
+  --match honor_fur-602.7z --out .
+
 # 校验：第一个参数是设备名，第二个是下载到的 .7z
-python tools/verify_firmware.py honor_fur-602  immortalwrt-mt7981-ax3000-scutclient-20260922-honor_fur-602.7z
-python tools/verify_firmware.py cmcc_rax3000m immortalwrt-mt7981-ax3000-scutclient-20260922-cmcc_rax3000m.7z
+python tools/verify_firmware.py honor_fur-602  immortalwrt-mt7981-ax3000-scutclient-<日期>-honor_fur-602.7z
+python tools/verify_firmware.py cmcc_rax3000m immortalwrt-mt7981-ax3000-scutclient-<日期>-cmcc_rax3000m.7z
 ```
 
 它会报出：镜像认哪台设备（`CONTROL`）、镜像格式（UBI / tar）、镜像里真正装了哪些包及其版本、
