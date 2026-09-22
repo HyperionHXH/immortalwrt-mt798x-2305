@@ -41,6 +41,16 @@ Actions 只允许手动触发，不会因为 push 自动开始编译。
 - `mt7986-ax6000-256m`
 - `mt7986-ax6000`
 
+### 用哪个 Release
+
+| Release | 说明 |
+|---|---|
+| **`...-20260922` 及以后** | ✅ 推荐。修掉了 `package.conf` 里两条**死条目**（`luci-app-socat`、`luci-app-wireguard` —— 这两个包名根本不存在，`make defconfig` 会静默丢弃），所以 socat 和 WireGuard 是这一版才开始真的进镜像的；mt7981 的 39 个设备包也都齐 |
+| `...-20260919` 及更早 | ⚠ 能用，但**镜像里没有 socat 和 WireGuard**（与本文档的插件清单不一致）。另外 20260918 只有 3 个 mt7986 整包，没有 mt7981 设备包 |
+
+2026-09-22 起，`scripts/validate_2305_packages.sh` 会逐条检查 `package.conf` 的每一行是否真的生效，
+所以这类"文档里有、镜像里没有"的问题会在准备阶段两分钟内报错，而不是悄悄少东西。
+
 ### 发布包怎么打包
 
 GitHub 单个 release 资产上限是 2 GiB，而 Ubuntu 22.04 自带的 p7zip 16.02 在输入
