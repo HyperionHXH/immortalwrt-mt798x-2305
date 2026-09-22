@@ -59,4 +59,27 @@ require_enabled sing-box
 require_enabled hysteria
 require_enabled geoview
 
+# package.conf 里每一行都必须真的生效。02_add_package.sh 会把每行写成
+# CONFIG_PACKAGE_<line>=y，而包名写错、包不存在、或者混进一条残留的 CONFIG_ 行，
+# make defconfig 都会静默丢掉它 —— 固件里就少了东西却没人知道。
+# （2026-09-22 就是这么发现 socat 和 wireguard 从来没进过镜像的。）
+PACKAGE_CONF="${PACKAGE_CONF:-$(dirname "$0")/../package.conf}"
+if [ -f "$PACKAGE_CONF" ]; then
+  missing_lines=()
+  while IFS= read -r line || [ -n "$line" ]; do
+    line="${line%%#*}"
+    line="${line#"${line%%[![:space:]]*}"}"
+    line="${line%"${line##*[![:space:]]}"}"
+    [ -z "$line" ] && continue
+    grep -Fqx "CONFIG_PACKAGE_${line}=y" "$CONFIG_FILE" || missing_lines+=("$line")
+  done < "$PACKAGE_CONF"
+
+  if [ "${#missing_lines[@]}" -gt 0 ]; then
+    echo "package.conf 中这些条目没有生效（包名不存在/写错/残留的 CONFIG_ 行）：" >&2
+    printf '  - %s\n' "${missing_lines[@]}" >&2
+    fail "package.conf 有 ${#missing_lines[@]} 条无效条目"
+  fi
+  echo "package.conf 的条目全部生效（$(grep -cvE '^[[:space:]]*(#|$)' "$PACKAGE_CONF") 条）。"
+fi
+
 echo "23.05 软件包校验通过：已加入 SQM（tc: $tc_provider，iptables: $iptables_provider），已移除 Tailscale，passwall 套件完整。"
