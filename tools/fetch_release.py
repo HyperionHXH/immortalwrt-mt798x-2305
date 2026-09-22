@@ -17,6 +17,7 @@
 from __future__ import annotations
 
 import argparse
+import http.client
 import json
 import os
 import sys
@@ -28,14 +29,24 @@ API = "https://api.github.com"
 CHUNK = 1 << 20  # 1 MiB
 
 
-def api(url: str, token: str) -> dict:
-    req = urllib.request.Request(url, headers={
-        "Authorization": f"token {token}",
-        "Accept": "application/vnd.github+json",
-        "User-Agent": "wb-fetch-release",
-    })
-    with urllib.request.urlopen(req, timeout=60) as resp:
-        return json.load(resp)
+def api(url: str, token: str, tries: int = 6) -> dict:
+    """带重试的 API 调用 —— 这台机器到 GitHub 的连接会整段抽风（10054/10060/
+    RemoteDisconnected），一次失败不该让上层脚本崩掉。"""
+    last: Exception | None = None
+    for attempt in range(1, tries + 1):
+        req = urllib.request.Request(url, headers={
+            "Authorization": f"token {token}",
+            "Accept": "application/vnd.github+json",
+            "User-Agent": "wb-fetch-release",
+        })
+        try:
+            with urllib.request.urlopen(req, timeout=60) as resp:
+                return json.load(resp)
+        except (urllib.error.URLError, http.client.HTTPException, TimeoutError, OSError) as exc:
+            last = exc
+            if attempt < tries:
+                time.sleep(min(3 * attempt, 20))
+    raise RuntimeError(f"API 连续 {tries} 次失败：{url} :: {last}")
 
 
 def resolve_tag(repo: str, token: str, tag: str | None) -> str:
@@ -55,7 +66,9 @@ def assets_of(repo: str, tag: str, token: str) -> list[dict]:
     return rel.get("assets", [])
 
 
-def download(url: str, dest: str, size: int, token: str, tries: int = 12) -> bool:
+def download(url: str, dest: str, size: int, token: str, tries: int = 40) -> bool:
+    """40 次尝试、退避到 30 秒 —— 实测这台机器会出现持续十分钟级的整段断网，
+    12 次尝试不够用（2026-09-22 就是这么失败的）。"""
     for attempt in range(1, tries + 1):
         have = os.path.getsize(dest) if os.path.exists(dest) else 0
         if have == size:
@@ -83,9 +96,9 @@ def download(url: str, dest: str, size: int, token: str, tries: int = 12) -> boo
                     print(f"\r     {os.path.basename(dest)}: {got/1048576:.1f}/{size/1048576:.1f} MB ({pct}%)",
                           end="", flush=True)
             print()
-        except (urllib.error.URLError, TimeoutError, OSError) as exc:
-            print(f"\n     第 {attempt}/{tries} 次中断（{exc}），{2 * attempt}s 后续传…")
-            time.sleep(min(2 * attempt, 20))
+        except (urllib.error.URLError, http.client.HTTPException, TimeoutError, OSError) as exc:
+            print(f"\n     第 {attempt}/{tries} 次中断（{exc}），{min(3 * attempt, 30)}s 后续传…")
+            time.sleep(min(3 * attempt, 30))
             continue
         if os.path.exists(dest) and os.path.getsize(dest) == size:
             return True
