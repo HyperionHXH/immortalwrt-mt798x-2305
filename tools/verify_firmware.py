@@ -204,6 +204,12 @@ def verify(device: str, source: str, workspace: str, workdir: str | None,
 
     print(f"\n{'=' * 74}\n设备：{device}\n来源：{source}\n解包目录：{workdir}\n{'=' * 74}")
 
+    if not os.path.exists(source):
+        print(f"❌ 路径不存在：{source}")
+        print("   （注意：Windows 上要传 Windows 风格的路径；'/c/...' 这类 msys 路径"
+              "会被当成当前盘根下的相对路径，文件其实在别处）")
+        return 2
+
     if os.path.isfile(source):
         if not source.lower().endswith(".7z") or py7zr is None:
             print("只支持 .7z 或已解开的目录")
@@ -303,7 +309,9 @@ def verify(device: str, source: str, workspace: str, workdir: str | None,
                     print(f"     {key:20s} {pkgs.get(key, '（缺失）')}")
                 for pkg, want in expect.items():
                     got = pkgs.get(pkg)
-                    if got == want:
+                    ok = got is not None and (
+                        got.startswith(want[:-1]) if want.endswith("*") else got == want)
+                    if ok:
                         print(f"   ✅ {pkg} 版本符合预期：{got}")
                     else:
                         msg = f"{name}: {pkg} 版本应为 {want}，实际 {got or '缺失'}"
@@ -353,7 +361,7 @@ def main() -> int:
                     help="含 wrapper 目录的工作区（默认自动向上查找）")
     ap.add_argument("--keep", help="解包目录（默认临时目录，跑完自动删）")
     ap.add_argument("--expect", action="append", default=[],
-                    metavar="PKG=VERSION", help="要求某个包必须是指定版本，可重复")
+                    metavar="PKG=VERSION", help="要求某个包必须是指定版本；以 * 结尾表示前缀匹配，可重复")
     args = ap.parse_args()
 
     workspace = find_workspace(args.workspace or os.path.dirname(os.path.abspath(__file__)))

@@ -54,6 +54,33 @@ GitHub 单个 release 资产上限是 2 GiB，而 Ubuntu 22.04 自带的 p7zip 1
   不必为了一个几十兆的镜像拉几个 G。目前只有 `mt7981-ax3000` 走这条路——它一次
   编出 **39 台设备**的镜像（约 4.2 GiB），拆出来每个设备包约 110 MB。
 
+### 刷机前自查（不用路由器）
+
+编译通过不等于固件内容对。下载到包之后，先离线验一遍再刷：
+
+```bash
+# 依赖只需装一次（写进隔离环境，不污染系统）
+C:/Users/MiunaH/.workbuddy/binaries/python/envs/default/Scripts/python.exe -m pip install py7zr PySquashfsImage
+
+# 校验：第一个参数是设备名，第二个是下载到的 .7z
+python tools/verify_firmware.py honor_fur-602  immortalwrt-mt7981-ax3000-scutclient-20260922-honor_fur-602.7z
+python tools/verify_firmware.py cmcc_rax3000m immortalwrt-mt7981-ax3000-scutclient-20260922-cmcc_rax3000m.7z
+```
+
+它会报出：镜像认哪台设备（`CONTROL`）、镜像格式（UBI / tar）、镜像里真正装了哪些包及其版本、
+`package.conf` 里有没有条目漏进镜像、`/sbin/wifi` 等 Wi-Fi 链路文件是否齐全、LAN 默认地址、
+以及有没有混进 tailscale / luci-app-mtk / wifi-profile。全部通过才会打印「全部通过，可以刷」。
+
+**这一步不是多余的**：2026-09-22 就是靠它发现 `chinadns-ng` 被同名包顶掉、
+`socat` 和 `luci-app-wireguard` 因为包名写错从未进过固件——这两种问题编译日志里完全看不出来。
+
+刷机入口按机型布局选，别刷错布局：
+
+- **UBI/NAND 机型**（`-squashfs-factory.bin` 的 magic 是 `UBI#`）：从 U-Boot / recovery 里刷 factory，
+  或在同布局的 ImmortalWrt 上刷 sysupgrade；
+- **`*_stock` 后缀的布局**对应原厂分区表，`ubootmod` 对应改过分区的，两者不能互换；
+- 不确定就先看 `verify_firmware.py` 打印的 `CONTROL`，它写明了镜像支持哪些 board。
+
 ## 本地编译参考
 
 现在不建议再把完整源码长期放在 WSL 里。下面命令只作为以后需要本地复现问题时的参考。
@@ -113,7 +140,7 @@ Action 会核对 23.05 源码提交。上游分支移动后必须先重新审查
 四个编译变种都会包含以下 LuCI 插件：
 
 - SCUT 校园网客户端
-- Passwall（Xray、Hysteria、Sing-Box、Shadowsocks Rust、TUIC）
+- Passwall（Xray、Hysteria、Sing-Box、Shadowsocks Rust；TUIC 客户端在 passwall 26.x 里已移除）
 - OpenClash
 - SQM 智能队列管理
 - MTK Easy QoS
