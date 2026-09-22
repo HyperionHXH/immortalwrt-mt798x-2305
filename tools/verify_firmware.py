@@ -84,7 +84,8 @@ MAGIC = [
     (b"\x27\x05\x19\x56", "uImage (U-Boot legacy)"),
 ]
 WATCH_PKGS = ("luci-app-passwall", "xray-core", "sing-box", "hysteria",
-              "shadowsocks-rust", "geoview", "chinadns-ng", "mtwifi-cfg")
+              "shadowsocks-rust", "geoview", "chinadns-ng", "mtwifi-cfg",
+              "socat", "luci-proto-wireguard", "luci-app-mtwifi-cfg")
 
 
 def human(n: int) -> str:
@@ -306,7 +307,16 @@ def verify(device: str, source: str, workspace: str, workdir: str | None,
                     print("   ✅ 没有 tailscale / luci-app-mtk / wifi-profile")
                 print("   关键版本：")
                 for key in WATCH_PKGS:
-                    print(f"     {key:20s} {pkgs.get(key, '（缺失）')}")
+                    if key in pkgs:
+                        print(f"     {key:22s} {pkgs[key]}")
+                        continue
+                    # 同一意图在别处的等价包名（如 shadowsocks-rust 拆成 sslocal/ssserver）
+                    alts = [a for a in ALIASES.get(key, ()) if a in pkgs]
+                    if alts:
+                        detail = "、".join(f"{a} {pkgs[a]}" for a in alts)
+                        print(f"     {key:22s} → {detail}")
+                    else:
+                        print(f"     {key:22s} （缺失）")
                 for pkg, want in expect.items():
                     got = pkgs.get(pkg)
                     ok = got is not None and (
