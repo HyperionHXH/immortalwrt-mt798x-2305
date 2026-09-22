@@ -42,6 +42,14 @@ def api(url: str, token: str, tries: int = 6) -> dict:
         try:
             with urllib.request.urlopen(req, timeout=60) as resp:
                 return json.load(resp)
+        except urllib.error.HTTPError as exc:
+            if exc.code == 401:
+                raise RuntimeError(
+                    "HTTP 401：令牌无效或为空（检查 GITHUB_TOKEN 是否取到；"
+                    "空字符串会被发成 'Authorization: token '，GitHub 报 401）") from exc
+            last = exc
+            if attempt < tries:
+                time.sleep(min(3 * attempt, 20))
         except (urllib.error.URLError, http.client.HTTPException, TimeoutError, OSError) as exc:
             last = exc
             if attempt < tries:
@@ -116,6 +124,13 @@ def main() -> int:
     args = ap.parse_args()
 
     token = os.environ.get("GITHUB_TOKEN", "")
+    if not token:
+        # 空 token 会发成 "Authorization: token "，GitHub 直接回 401 Bad credentials，
+        # 报错信息看起来像权限问题、其实是没取到令牌（2026-09-22 踩过）。
+        print("错误：GITHUB_TOKEN 为空。取法：\n"
+              "    printf 'protocol=https\\nhost=github.com\\n\\n' | git-credential-manager get",
+              file=sys.stderr)
+        return 2
     tag = resolve_tag(args.repo, token, None if args.latest or not args.tag else args.tag)
     assets = assets_of(args.repo, tag, token)
     picked = [a for a in assets if not args.match or any(m in a["name"] for m in args.match)]
